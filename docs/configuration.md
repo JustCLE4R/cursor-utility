@@ -1,0 +1,60 @@
+# Configuration
+
+## Command-line options
+
+| Option | Effect |
+|---|---|
+| `-Config <path>` | Config file to use. Default: `config.ini` next to the script. Relative paths resolve from the current directory. A missing file is created with defaults. |
+| `-DryRun` | No cursor movement or clicks. Log lines get `[dry-run]` and the tooltip says "(dry run)". Forces `debug.dry_run` on. |
+| `-RunOnce` | One cycle immediately, ignoring the schedule and idle time, then exit. |
+| `-Overlay` | Red markers at the click points during a cycle. Forces `debug.overlay` on. |
+
+`run.bat` and `run.vbs` pass any arguments on to the script.
+
+## `config.ini`
+
+- **Format:** `[section]` headers and `key=value` lines. Lines starting with `#` or `;` are comments. Spaces around keys and values are trimmed.
+- **Values:**
+  - True/false values accept `true`, `yes`, `1` or `on`, in any case. Anything else counts as false.
+  - A number that can't be read falls back to the default.
+- **Reloading:** the file is re-read every second, so changes apply without a restart.
+
+| Key | Default | Validation | Meaning |
+|---|---|---|---|
+| `general.enabled` | `true` | — | `false` makes the running app exit, and stops it from starting |
+| `general.log_enabled` | `true` | — | write `logs\cursor-utility.log` |
+| `activity.min_interval_seconds` | `60` | ≥ 1 | shortest time between cycles |
+| `activity.max_interval_seconds` | `120` | ≥ min | longest time between cycles |
+| `activity.idle_seconds` | `120` | ≥ 0 | how long you must be idle before cycles run |
+| `activity.return_after_move` | `true` | — | move the cursor back after the clicks |
+| `activity.smooth_move` | `true` | — | curved, eased movement instead of jumping |
+| `click.corner_delay_min_ms` | `700` | ≥ 50 | shortest pause between the two clicks |
+| `click.corner_delay_max_ms` | `2200` | ≥ min | longest pause between the two clicks |
+| `schedule.<shift>_enabled` | `true` | — | shift on/off |
+| `schedule.<shift>_start` / `_end` | see below | `TimeSpan.Parse`; invalid values throw | `HH:mm`, both ends included; may cross midnight |
+| `debug.dry_run` | `false` | — | same as `-DryRun` |
+| `debug.overlay` | `false` | — | same as `-Overlay` |
+
+Values below the minimum are raised to it. If a maximum is below its minimum, it's set to the minimum.
+
+Random values (intervals, delays) are drawn from a bell curve centred on the middle of the range, with the range covering ±3σ, and clamped to `[min, max]`.
+
+### Shifts
+
+The shift names are fixed in `$DefaultShifts` (`modules/Schedule.ps1`):
+
+| Shift | Default start | Default end |
+|---|---|---|
+| `subuh` | 00:00 | 08:30 |
+| `pagi` | 08:00 | 16:30 |
+| `malam` | 16:00 | 00:30 |
+
+The schedule is active if any enabled shift matches the current minute. The defaults overlap, so together they cover all 24 hours.
+
+## Adding a setting
+
+1. Read it in `Import-Settings` (`modules/Config.ps1`) with `Get-IniBool` or `Get-IniInt` and a default. Add clamping under `# Validation` if needed.
+2. Add it, with a comment, to `$DefaultConfigText` in the same file.
+3. Add a row to the table above.
+4. Add a test in `tests/Config.Tests.ps1`. If it belongs in the generated config, also extend the "writes a config that loads with the built-in defaults" test.
+5. For a matching command-line switch: add it to `param()` in `cursor-utility.ps1` with a `.PARAMETER` help entry, and combine it in `Import-Settings` the way `$IsDryRun` is.
