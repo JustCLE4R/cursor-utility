@@ -89,6 +89,7 @@ if ($IsDryRun) {
 Write-Log "Interval: $MinInterval-$MaxInterval seconds"
 Write-Log "Idle before start: $IdleSeconds seconds"
 Write-Log "Corner delay: $CornerDelayMin-$CornerDelayMax ms"
+Write-Log "Click order: $ClickOrder"
 Write-Log "========================================"
 
 # ============================================================

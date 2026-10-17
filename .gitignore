@@ -1,0 +1,24 @@
+# Runtime logs
+logs/
+*.log
+*.log.old
+
+# Personal settings. A commented default is generated on first run
+# (see $DefaultConfigText in modules/Config.ps1).
+config.ini
+
+# Test output
+TestResults.xml
+testResults.xml
+
+# Editors and tools
+.vscode/
+.idea/
+.claude/settings.local.json
+*.tmp
+*.bak
+
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/

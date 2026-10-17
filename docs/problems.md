@@ -5,8 +5,8 @@ Last checked 2026-10-18, after the code was split into modules.
 
 ## 1. Bottom-left click hits the Start button
 
-- **Where:** `modules/Actions.ps1`, `Invoke-CornerClicks` (the clicks at lines 23–36)
-- **What happens:** on a default Windows 10 taskbar, (0, 1079) is the Start button, so every cycle probably opens the Start menu and leaves it open. The top-left click at (0, 0) can hit a maximized window's system menu or File menu.
+- **Where:** `modules/Actions.ps1`, `Invoke-CornerClicks` (the clicks at lines 36–48)
+- **What happens:** on a default Windows 10 taskbar, (0, 1079) is the Start button, so every cycle (in any `click.order`) probably opens the Start menu and leaves it open. The top-left click at (0, 0) can hit a maximized window's system menu or File menu.
 - **Fix options:**
   - Click safer points, or move without clicking
   - Check what is under the cursor before clicking (see the safe-click idea in `ideas.md`)

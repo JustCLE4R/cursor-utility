@@ -32,6 +32,7 @@ A missing `-Config` file is created with defaults. Logs always go to `logs\curso
 ## Layout
 
 ```
+README.md            User guide (setup, tray, settings)
 cursor-utility.ps1   Entry point: parameters, loading modules, startup, main loop
 modules/
   Config.ps1         INI parsing, default config text, Import-Settings

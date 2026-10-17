@@ -104,9 +104,11 @@ return_after_move=true
 smooth_move=true
 
 [click]
-# Pause between the top-left click and the bottom-left click
+# Pause between the first and the second corner click
 corner_delay_min_ms=700
 corner_delay_max_ms=2200
+# Which corner to click first: top_first, bottom_first or random (picked each cycle)
+order=top_first
 
 [schedule]
 # Note: these three shifts overlap and cover all 24 hours.
@@ -168,6 +170,7 @@ function Import-Settings {
 
     $script:CornerDelayMin  = Get-IniInt  $Ini "click.corner_delay_min_ms" 700
     $script:CornerDelayMax  = Get-IniInt  $Ini "click.corner_delay_max_ms" 2200
+    $script:ClickOrder      = (Get-IniValue $Ini "click.order" "top_first").ToLower()
 
     $script:IsDryRun        = [bool]$DryRun -or (Get-IniBool $Ini "debug.dry_run" $false)
     $script:ShowOverlay     = [bool]$Overlay -or (Get-IniBool $Ini "debug.overlay" $false)
@@ -179,4 +182,5 @@ function Import-Settings {
     if ($IdleSeconds -lt 0) { $script:IdleSeconds = 0 }
     if ($CornerDelayMin -lt 50) { $script:CornerDelayMin = 50 }
     if ($CornerDelayMax -lt $CornerDelayMin) { $script:CornerDelayMax = $CornerDelayMin }
+    if (@("top_first", "bottom_first", "random") -notcontains $ClickOrder) { $script:ClickOrder = "top_first" }
 }

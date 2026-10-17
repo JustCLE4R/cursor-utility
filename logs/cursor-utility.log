@@ -2230,3 +2230,129 @@
 [2026-10-18 02:27:53] User active. Waiting for 5 seconds of idle.
 [2026-10-18 02:27:55] Turned OFF from tray.
 [2026-10-18 02:27:56] Paused.
+[2026-10-18 02:37:13] ========================================
+[2026-10-18 02:37:13] Cursor Utility started
+[2026-10-18 02:37:13] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-top_first.ini
+[2026-10-18 02:37:13] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:13] Interval: 60-120 seconds
+[2026-10-18 02:37:13] Idle before start: 120 seconds
+[2026-10-18 02:37:13] Corner delay: 50-50 ms
+[2026-10-18 02:37:13] Click order: top_first
+[2026-10-18 02:37:13] ========================================
+[2026-10-18 02:37:13] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:13] [dry-run] Click: top-left (0,0)
+[2026-10-18 02:37:13] [dry-run] Click: bottom-left (0,1079) after 50 ms
+[2026-10-18 02:37:14] Cursor Utility stopped.
+[2026-10-18 02:37:15] ========================================
+[2026-10-18 02:37:15] Cursor Utility started
+[2026-10-18 02:37:15] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-bottom_first.ini
+[2026-10-18 02:37:15] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:15] Interval: 60-120 seconds
+[2026-10-18 02:37:15] Idle before start: 120 seconds
+[2026-10-18 02:37:15] Corner delay: 50-50 ms
+[2026-10-18 02:37:15] Click order: bottom_first
+[2026-10-18 02:37:15] ========================================
+[2026-10-18 02:37:15] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:15] [dry-run] Click: bottom-left (0,1079)
+[2026-10-18 02:37:15] [dry-run] Click: top-left (0,0) after 50 ms
+[2026-10-18 02:37:16] Cursor Utility stopped.
+[2026-10-18 02:37:17] ========================================
+[2026-10-18 02:37:17] Cursor Utility started
+[2026-10-18 02:37:17] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-random.ini
+[2026-10-18 02:37:17] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:17] Interval: 60-120 seconds
+[2026-10-18 02:37:17] Idle before start: 120 seconds
+[2026-10-18 02:37:17] Corner delay: 50-50 ms
+[2026-10-18 02:37:17] Click order: random
+[2026-10-18 02:37:17] ========================================
+[2026-10-18 02:37:17] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:17] [dry-run] Click: bottom-left (0,1079)
+[2026-10-18 02:37:17] User moved the mouse: expected (1698,1072), cursor at (1704,1068), foreground window 'Administrator: Windows PowerShell' (pid 2900). Cycle cancelled.
+[2026-10-18 02:37:17] Cursor Utility stopped.
+[2026-10-18 02:37:20] Cursor Utility stopped.
+[2026-10-18 02:37:33] ========================================
+[2026-10-18 02:37:33] Cursor Utility started
+[2026-10-18 02:37:33] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-random.ini
+[2026-10-18 02:37:33] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:33] Interval: 60-120 seconds
+[2026-10-18 02:37:33] Idle before start: 120 seconds
+[2026-10-18 02:37:33] Corner delay: 50-50 ms
+[2026-10-18 02:37:33] Click order: random
+[2026-10-18 02:37:33] ========================================
+[2026-10-18 02:37:33] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:34] [dry-run] Click: bottom-left (0,1079)
+[2026-10-18 02:37:34] [dry-run] Click: top-left (0,0) after 50 ms
+[2026-10-18 02:37:34] Cursor Utility stopped.
+[2026-10-18 02:37:35] ========================================
+[2026-10-18 02:37:35] Cursor Utility started
+[2026-10-18 02:37:35] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-random.ini
+[2026-10-18 02:37:35] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:35] Interval: 60-120 seconds
+[2026-10-18 02:37:35] Idle before start: 120 seconds
+[2026-10-18 02:37:36] Corner delay: 50-50 ms
+[2026-10-18 02:37:36] Click order: random
+[2026-10-18 02:37:36] ========================================
+[2026-10-18 02:37:36] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:36] [dry-run] Click: top-left (0,0)
+[2026-10-18 02:37:36] [dry-run] Click: bottom-left (0,1079) after 50 ms
+[2026-10-18 02:37:36] Cursor Utility stopped.
+[2026-10-18 02:37:38] ========================================
+[2026-10-18 02:37:38] Cursor Utility started
+[2026-10-18 02:37:38] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-random.ini
+[2026-10-18 02:37:38] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:38] Interval: 60-120 seconds
+[2026-10-18 02:37:38] Idle before start: 120 seconds
+[2026-10-18 02:37:38] Corner delay: 50-50 ms
+[2026-10-18 02:37:38] Click order: random
+[2026-10-18 02:37:38] ========================================
+[2026-10-18 02:37:38] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:38] [dry-run] Click: bottom-left (0,1079)
+[2026-10-18 02:37:38] [dry-run] Click: top-left (0,0) after 50 ms
+[2026-10-18 02:37:38] Cursor Utility stopped.
+[2026-10-18 02:37:40] ========================================
+[2026-10-18 02:37:40] Cursor Utility started
+[2026-10-18 02:37:40] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-random.ini
+[2026-10-18 02:37:40] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:40] Interval: 60-120 seconds
+[2026-10-18 02:37:40] Idle before start: 120 seconds
+[2026-10-18 02:37:40] Corner delay: 50-50 ms
+[2026-10-18 02:37:40] Click order: random
+[2026-10-18 02:37:40] ========================================
+[2026-10-18 02:37:40] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:40] [dry-run] Click: top-left (0,0)
+[2026-10-18 02:37:40] [dry-run] Click: bottom-left (0,1079) after 50 ms
+[2026-10-18 02:37:40] Cursor Utility stopped.
+[2026-10-18 02:37:42] ========================================
+[2026-10-18 02:37:42] Cursor Utility started
+[2026-10-18 02:37:42] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-random.ini
+[2026-10-18 02:37:42] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:42] Interval: 60-120 seconds
+[2026-10-18 02:37:42] Idle before start: 120 seconds
+[2026-10-18 02:37:42] Corner delay: 50-50 ms
+[2026-10-18 02:37:42] Click order: random
+[2026-10-18 02:37:42] ========================================
+[2026-10-18 02:37:42] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:42] [dry-run] Click: top-left (0,0)
+[2026-10-18 02:37:42] [dry-run] Click: bottom-left (0,1079) after 50 ms
+[2026-10-18 02:37:42] Cursor Utility stopped.
+[2026-10-18 02:37:44] ========================================
+[2026-10-18 02:37:44] Cursor Utility started
+[2026-10-18 02:37:44] Config: C:\Users\ADMINI~1\AppData\Local\Temp\cu-random.ini
+[2026-10-18 02:37:44] Mode: dry run (no cursor movement or clicks)
+[2026-10-18 02:37:44] Interval: 60-120 seconds
+[2026-10-18 02:37:44] Idle before start: 120 seconds
+[2026-10-18 02:37:44] Corner delay: 50-50 ms
+[2026-10-18 02:37:44] Click order: random
+[2026-10-18 02:37:44] ========================================
+[2026-10-18 02:37:44] Run once: one cycle now, ignoring schedule and idle time.
+[2026-10-18 02:37:44] [dry-run] Click: bottom-left (0,1079)
+[2026-10-18 02:37:44] [dry-run] Click: top-left (0,0) after 50 ms
+[2026-10-18 02:37:44] Cursor Utility stopped.
+[2026-10-18 02:45:05] ========================================
+[2026-10-18 02:45:05] Cursor Utility started
+[2026-10-18 02:45:05] Interval: 60-120 seconds
+[2026-10-18 02:45:05] Idle before start: 120 seconds
+[2026-10-18 02:45:05] Corner delay: 700-2200 ms
+[2026-10-18 02:45:05] Click order: bottom_first
+[2026-10-18 02:45:05] ========================================
+[2026-10-18 02:45:06] User active. Waiting for 120 seconds of idle.

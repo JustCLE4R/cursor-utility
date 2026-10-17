@@ -124,6 +124,7 @@ Describe "New-DefaultConfig" {
         $SmoothMove | Should Be $true
         $CornerDelayMin | Should Be 700
         $CornerDelayMax | Should Be 2200
+        $ClickOrder | Should Be "top_first"
         $IsDryRun | Should Be $false
         $ShowOverlay | Should Be $false
     }
@@ -167,6 +168,28 @@ Describe "Import-Settings" {
         $IdleSeconds | Should Be 0
         $CornerDelayMin | Should Be 50
         $CornerDelayMax | Should Be 50
+    }
+
+    foreach ($order in @("top_first", "bottom_first", "random")) {
+        It "accepts click order '$order'" {
+            Import-Settings (New-TestIni @("[click]", "order=$order"))
+
+            $ClickOrder | Should Be $order
+        }
+    }
+
+    It "reads the click order case-insensitively" {
+        Import-Settings (New-TestIni @("[click]", "order=Bottom_First"))
+
+        $ClickOrder | Should Be "bottom_first"
+    }
+
+    It "falls back to top_first for a missing or unknown click order" {
+        Import-Settings (New-TestIni @(""))
+        $ClickOrder | Should Be "top_first"
+
+        Import-Settings (New-TestIni @("[click]", "order=sideways"))
+        $ClickOrder | Should Be "top_first"
     }
 
     It "reads the debug section" {

@@ -59,10 +59,10 @@ With `-RunOnce`, the loop is skipped: one `Invoke-CornerClicks` runs, then the s
 
 ## One cycle (`Invoke-CornerClicks`)
 
-1. Remember the cursor position and set `$InAction`. Show the overlay markers if `$ShowOverlay` is set.
-2. Move to (0, 0), wait 80–250 ms, click.
+1. Remember the cursor position. Pick the corner order from `$ClickOrder`: top-left (0, 0) then bottom-left (0, screen height − 1), or the reverse. `random` flips a coin each cycle. Set `$InAction`, and show the overlay markers if `$ShowOverlay` is set.
+2. Move to the first corner, wait 80–250 ms, click.
 3. Wait `corner_delay_min_ms`–`corner_delay_max_ms`.
-4. Move to (0, screen height − 1), wait, click.
+4. Move to the second corner, wait, click.
 5. If `return_after_move` is on, move back to the remembered position.
 6. `finally`: hide the markers, clear `$InAction`, set `$IgnoreInputBefore = now`.
 

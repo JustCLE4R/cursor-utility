@@ -121,7 +121,7 @@ Everything that could be added to Cursor Utility, grouped by area.
 - [ ] **Custom app icon**
 - [ ] **Auto-update** from GitHub releases
 - [ ] **Portable mode:** everything in one folder
-- [ ] **README** with usage and config docs
+- [x] **README** with usage and config docs
 - [ ] **Git repo** for version history
 
 ## Code quality

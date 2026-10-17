@@ -13,7 +13,7 @@
 
 ## `config.ini`
 
-- **Format:** `[section]` headers and `key=value` lines. Lines starting with `#` or `;` are comments. Spaces around keys and values are trimmed.
+- **Format:** `[section]` headers and `key=value` lines. Lines starting with `#` or `;` are comments. Comments after a value aren't supported: `idle_seconds=120 ; note` reads the whole text as the value, so the number can't be read and the default is used. Spaces around keys and values are trimmed.
 - **Values:**
   - True/false values accept `true`, `yes`, `1` or `on`, in any case. Anything else counts as false.
   - A number that can't be read falls back to the default.
@@ -30,6 +30,7 @@
 | `activity.smooth_move` | `true` | — | curved, eased movement instead of jumping |
 | `click.corner_delay_min_ms` | `700` | ≥ 50 | shortest pause between the two clicks |
 | `click.corner_delay_max_ms` | `2200` | ≥ min | longest pause between the two clicks |
+| `click.order` | `top_first` | `top_first`, `bottom_first` or `random`, any case; anything else → `top_first` | which corner is clicked first; `random` picks again each cycle |
 | `schedule.<shift>_enabled` | `true` | — | shift on/off |
 | `schedule.<shift>_start` / `_end` | see below | `TimeSpan.Parse`; invalid values throw | `HH:mm`, both ends included; may cross midnight |
 | `debug.dry_run` | `false` | — | same as `-DryRun` |
