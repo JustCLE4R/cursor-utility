@@ -14,7 +14,8 @@
 | 6 | `Input.ps1` | no | WinForms, `$Random`, `Get-NaturalRandom`, `$Paused`, `$ExitRequested`, `$IsDryRun`, `$SmoothMove` | compiles `MouseApi`, calls `SetProcessDPIAware`, sets the idle-detection state |
 | 7 | `Tray.ps1` | no | `MouseApi`, `Write-Log`, the status variables below | sets `$Paused`, `$ExitRequested` and the icon colours (the icon is created later by `Initialize-Tray`) |
 | 8 | `Overlay.ps1` | no | WinForms | none (the C# type is compiled on first `Show-ClickMarkers`) |
-| 9 | `Actions.ps1` | no | everything above | sets the action-file state |
+| 9 | `Browser.ps1` | no | none | none (UI Automation and the `TabFinder` C# type are loaded on the first `focus tab`) |
+| 10 | `Actions.ps1` | no | everything above | sets the action-file state |
 
 **Pure** modules load without WinForms, Win32 or the tray, so the tests dot-source them directly.
 
@@ -42,12 +43,12 @@ Everything lives in the entry script's scope. Write it as `$script:X = ...` insi
 | `$Enabled`, `$LogEnabled` | Config | `[general]` |
 | `$MinInterval`, `$MaxInterval`, `$IdleSeconds`, `$ReturnAfterMove`, `$SmoothMove` | Config | `[activity]`, already validated |
 | `$CornerDelayMin`, `$CornerDelayMax`, `$ClickOrder` | Config | `[click]` |
-| `$ActionsFile`, `$ActionsPath`, `$RestoreFocus` | Config | `[actions]`; `$ActionsPath` is resolved against the config folder, `""` = corners |
+| `$ActionsFile`, `$ActionsPath`, `$RestoreFocus`, `$Browsers` | Config | `[actions]`; `$ActionsPath` is resolved against the config folder, `""` = corners; `$Browsers` is a list of process names for `focus tab` |
 | `$BreakEnabled`, `$BreakChance`, `$BreakMinMinutes`, `$BreakMaxMinutes` | Config | `[break]` |
 | `$IsDryRun`, `$ShowOverlay` | Config | switch OR `[debug]` setting; **use these, not `$DryRun`/`$Overlay`** |
 | `$ActionSteps`, `$ActionError`, `$ActionStamp` | Actions | loaded steps, or the load error; the stamp (path, size, time) avoids reloading |
 | `$LastCycleResult` | Actions | `done`, `stopped`, `error` or `cancelled: <reason>` |
-| `$FocusRestore`, `$CyclePoint` | Actions | window to restore after a cycle; dry-run cursor position |
+| `$FocusRestore`, `$TabRestore`, `$CyclePoint` | Actions | window and browser tab to restore after a cycle; dry-run cursor position |
 | `$LastUserInput`, `$IgnoreInputBefore`, `$InAction` | Input | idle detection (see below) |
 | `$ExpectedX`, `$ExpectedY` | Input | where the script last put the cursor |
 | `$CycleDisplay` | Input | display signature while a cycle runs, otherwise `$null` |
@@ -78,6 +79,8 @@ reload config -> reload actions file if changed -> update idle tracking
   otherwise                  -> Invoke-Cycle, clear NextRunAt, maybe start a break
 any exception -> log "ERROR: ...", tray error state, wait 30 s
 ```
+
+`Wait-Responsive` returns early when Exit is clicked, so quitting never waits out the 1-second tick or the 30-second error pause.
 
 - **`Invoke-Cycle`:** builds the steps with `Get-CycleSteps`, runs `Invoke-ActionCycle` and records the result in `$Stats`.
 - **`Get-CycleSteps`:** returns either the actions file's steps or `Get-CornerSteps` for the configured order. For `random` it flips a coin each cycle. It emits the steps one by one, so call it as `@(Get-CycleSteps)`.
@@ -169,6 +172,9 @@ Tick maths uses `MouseApi.Now/Since/IsAfter`, which handle the 49.7-day `TickCou
   - Mouse buttons and the wheel use the legacy `mouse_event`. Keys use `keybd_event` with the scan code from `MapVirtualKey` and the extended flag where needed. `SendInput` is on the backlog.
   - Wheel deltas are ±120 per notch; up and right are positive.
 - **Focus:** `MouseApi.FindWindowByText` enumerates visible titled windows and prefers an exact process-name match over a title match. `MouseApi.FocusWindow` restores minimized windows and calls `SetForegroundWindow`. If Windows refuses, it taps Alt and retries.
+- **Focus tab:** Win32 can't see browser tabs; a window title only shows the active tab. `Browser.ps1` compiles `TabFinder`, which walks the UI Automation control view of every top-level window owned by a `$Browsers` process. It collects `TabItem` elements and doesn't descend into `Document` elements, which hold the web page and would be slow to walk. It's limited to 25 levels deep.
+  - **Selecting:** `SelectionItemPattern.Select()`, then `InvokePattern.Invoke()`. `Invoke-FocusTabStep` falls back to clicking the tab's `BoundingRectangle` centre if neither is supported, or if the tab still isn't selected afterwards.
+  - **Switching back:** the previously selected tab in that window is kept in `$TabRestore`, and re-selected in the cycle's `finally` using patterns only, never a click, so the user can't be surprised by an uncancellable click.
 - **Thread:** the process must be STA. `run.vbs` passes `-STA`; PowerShell 5.1 consoles are STA by default.
 - **Overlay:** `OverlayMarker` is a borderless `Form` with `WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE`, so clicks pass through and it never takes focus. Magenta is the transparency key.
 - **PowerShell gotchas:**

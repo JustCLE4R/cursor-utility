@@ -54,6 +54,7 @@ modules/
                      wheel, keys, window focus, display signature
   Tray.ps1           State icons, tooltip, info menu, Wait-Responsive
   Overlay.ps1        Debug markers (C# Form compiled on first use)
+  Browser.ps1        Browser tabs via UI Automation for "focus tab" (compiled on first use)
   Actions.ps1        Sync-ActionScript, Invoke-ActionCycle: runs one cycle of steps
 tests/               Pester tests for the pure modules
 config.ini           User settings (live-reloaded; git-ignored)

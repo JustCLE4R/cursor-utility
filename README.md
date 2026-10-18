@@ -118,6 +118,8 @@ Set `file=actions.txt` under `[actions]`, then edit **`actions.txt`**. Each cycl
 ```
 # Bring Teams to the front (process name or part of the title)
 focus teams
+# Or select a browser tab, even when another tab is showing in that window
+focus tab whatsapp
 # Random pause, in milliseconds
 wait 500-1200
 # Left click in the middle, then a right click near the bottom-right corner
@@ -132,7 +134,8 @@ scroll up 3
 
 - **Positions:** pixels (`250`), percentages (`50%`), or words: `left`, `center` and `right` for X, `top`, `center` and `bottom` for Y. Words take an offset, e.g. `right-10`.
 - **Click types:** `left`, `right`, `middle` and `double`.
-- **Coming back:** the window you had in front comes back after the cycle.
+- **Coming back:** the window you had in front comes back after the cycle, and after `focus tab` the browser goes back to the tab you were on.
+- **Browser tabs:** `focus tab` searches Edge, Chrome, Brave, Vivaldi, Opera and Firefox. Change the list with `browsers=` under `[actions]`.
 - **Saving:** changes apply as soon as you save the file.
 - **Mistakes:** a mistake turns the icon red and shows the line number until it's fixed.
 

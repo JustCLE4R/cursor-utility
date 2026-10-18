@@ -184,6 +184,34 @@ Describe "ConvertFrom-ActionLine" {
         (ConvertFrom-ActionLine 'focus "Visual Studio Code"').Target | Should Be "Visual Studio Code"
     }
 
+    It "reads focus as a window by default" {
+        (ConvertFrom-ActionLine "focus notepad").Mode | Should Be "window"
+    }
+
+    It "reads focus tab" {
+        $step = ConvertFrom-ActionLine "focus tab whatsapp"
+
+        $step.Mode | Should Be "tab"
+        $step.Target | Should Be "whatsapp"
+    }
+
+    It "reads focus tab with spaces, quotes and any case" {
+        $quoted = ConvertFrom-ActionLine 'focus tab "WhatsApp Web"'
+        $quoted.Mode | Should Be "tab"
+        $quoted.Target | Should Be "WhatsApp Web"
+
+        $spaced = ConvertFrom-ActionLine "FOCUS  TAB   Inbox (3)  "
+        $spaced.Mode | Should Be "tab"
+        $spaced.Target | Should Be "Inbox (3)"
+    }
+
+    It "doesn't mistake window names that start with 'tab' for tabs" {
+        $step = ConvertFrom-ActionLine "focus Tableau"
+
+        $step.Mode | Should Be "window"
+        $step.Target | Should Be "Tableau"
+    }
+
     $bad = @{
         "clik left top"          = "unknown command"
         "move 10"                = "move needs X and Y"
@@ -200,6 +228,8 @@ Describe "ConvertFrom-ActionLine" {
         "wait 900-100"           = "backwards"
         "wait 3600001"           = "1 hour"
         "focus"                  = "focus needs"
+        "focus tab"              = "focus tab needs"
+        'focus tab ""'           = "focus tab needs"
     }
 
     foreach ($line in $bad.Keys) {

@@ -21,6 +21,10 @@
 #                           chrome) or part of its title. If no window matches, the
 #                           cycle is cancelled. The previous window comes back at the
 #                           end of the cycle (restore_focus in config.ini).
+#   focus  tab NAME         Find a browser tab whose title contains NAME (Edge, Chrome,
+#                           ...; see browsers in config.ini), select it and bring its
+#                           window to the front, even when another tab is showing.
+#                           The tab you were on comes back at the end of the cycle.
 #
 # X and Y (pixels on the primary monitor; 0,0 is its top-left corner)
 #   250                     Pixels. Negative values reach monitors left of or above it.
@@ -38,16 +42,21 @@
 # Steps (this default does the same as the built-in corner clicks)
 # ------------------------------------------------------------
 
-click left top
-wait 700-2200
+focus tab 'Whatsapp Business'
+move 250 center
+scroll down 20
 click left bottom
+wait 700-2200
+click left top
+move 250 center
+scroll up 25
 
 # ------------------------------------------------------------
 # More ideas, uncomment to try (test with: run.bat -DryRun)
 # ------------------------------------------------------------
 # key f15
 # wait 300-800
-# focus notepad
+# focus tab whatsapp
 # click center center
 # scroll down 3
 # wait 400-900

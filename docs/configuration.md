@@ -34,7 +34,8 @@
 | `click.corner_delay_max_ms` | `2200` | ≥ min | longest pause between the two clicks |
 | `click.order` | `top_first` | `top_first`, `bottom_first` or `random`, any case; anything else → `top_first` | which corner is clicked first; `random` picks again each cycle |
 | `actions.file` | empty | path; relative to the config file's folder | run the steps in this file instead of the corner clicks; see [actions.md](actions.md). Empty = corner clicks, which use the `click.*` keys. |
-| `actions.restore_focus` | `true` | — | after a cycle with a `focus` step, bring back the window that was in front before |
+| `actions.restore_focus` | `true` | — | after a cycle with a `focus` step, bring back the window that was in front before (and, after `focus tab`, the tab that was showing) |
+| `actions.browsers` | `msedge, chrome, brave, vivaldi, opera, firefox` | process names, separated by commas or spaces, any case, `.exe` optional; empty → default | programs searched by `focus tab NAME` |
 | `break.enabled` | `false` | — | take an occasional longer break |
 | `break.chance_percent` | `5` | 0–100 | chance of a break after each finished cycle |
 | `break.min_minutes` | `5` | ≥ 1 | shortest break |

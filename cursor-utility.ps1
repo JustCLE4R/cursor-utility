@@ -54,6 +54,7 @@ Add-Type -AssemblyName System.Drawing
 . (Join-Path $ModuleDir "Input.ps1")
 . (Join-Path $ModuleDir "Tray.ps1")
 . (Join-Path $ModuleDir "Overlay.ps1")
+. (Join-Path $ModuleDir "Browser.ps1")
 . (Join-Path $ModuleDir "Actions.ps1")
 
 # ============================================================

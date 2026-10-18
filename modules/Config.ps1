@@ -108,21 +108,23 @@ smooth_move=true
 corner_delay_min_ms=700
 corner_delay_max_ms=2200
 # Which corner to click first: top_first, bottom_first or random (picked each cycle)
-order=top_first
+order=bottom_first
 
 [actions]
 # Your own steps instead of the corner clicks above, e.g. file=actions.txt
 # (relative to this config file). Leave empty for the corner clicks.
 # See actions.txt for the commands: move, click, key, scroll, wait, focus.
 file=
-# After a "focus" step, switch back to the window you had in front
-restore_focus=true
+# After a "focus" step, switch back to the window (and tab) you had in front
+restore_focus=false
+# Programs searched by "focus tab NAME" (process names, comma-separated)
+browsers=msedge, chrome, brave, opera, firefox, vivaldi
 
 [break]
 # Now and then take a longer break, like a person getting coffee
-enabled=false
+enabled=true
 # Chance of a break after each cycle, in percent (0-100)
-chance_percent=5
+chance_percent=1
 # Break length in minutes
 min_minutes=5
 max_minutes=20
@@ -163,6 +165,24 @@ function New-DefaultConfig {
     Set-Content -LiteralPath $Path -Value $DefaultConfigText -Encoding UTF8
 }
 
+$DefaultBrowsers = "msedge, chrome, brave, opera, firefox, vivaldi"
+
+# "msedge, Chrome.exe  firefox" -> @("msedge", "chrome", "firefox").
+# Empty falls back to the default list, so "focus tab" always has somewhere to look.
+function ConvertTo-ProcessList {
+    param(
+        [string]$Text
+    )
+
+    $names = @($Text -split '[,;\s]+' | Where-Object { $_ } | ForEach-Object { ($_.ToLower()) -replace '\.exe$', '' })
+
+    if ($names.Count -eq 0) {
+        return ConvertTo-ProcessList $DefaultBrowsers
+    }
+
+    return $names
+}
+
 # ============================================================
 # Settings (reloaded every cycle, so config edits apply live)
 # ============================================================
@@ -191,6 +211,7 @@ function Import-Settings {
 
     $script:ActionsFile     = Get-IniValue $Ini "actions.file" ""
     $script:RestoreFocus    = Get-IniBool  $Ini "actions.restore_focus" $true
+    $script:Browsers        = ConvertTo-ProcessList (Get-IniValue $Ini "actions.browsers" $DefaultBrowsers)
 
     $script:BreakEnabled    = Get-IniBool  $Ini "break.enabled" $false
     $script:BreakChance     = Get-IniInt   $Ini "break.chance_percent" 5

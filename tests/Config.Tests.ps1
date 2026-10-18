@@ -213,6 +213,24 @@ Describe "Import-Settings" {
         $ActionsPath | Should Be "C:\somewhere\steps.txt"
     }
 
+    It "searches the common browsers for tabs by default" {
+        Import-Settings (New-TestIni @(""))
+
+        ($Browsers -join ",") | Should Be "msedge,chrome,brave,vivaldi,opera,firefox"
+    }
+
+    It "reads the browser list with commas or spaces, any case, with or without .exe" {
+        Import-Settings (New-TestIni @("[actions]", "browsers=MSEdge.exe,  chrome firefox"))
+
+        ($Browsers -join ",") | Should Be "msedge,chrome,firefox"
+    }
+
+    It "falls back to the default browsers for an empty list" {
+        Import-Settings (New-TestIni @("[actions]", "browsers= , "))
+
+        ($Browsers -join ",") | Should Be "msedge,chrome,brave,vivaldi,opera,firefox"
+    }
+
     It "reads the break section" {
         Import-Settings (New-TestIni @("[break]", "enabled=true", "chance_percent=12", "min_minutes=3", "max_minutes=9"))
 

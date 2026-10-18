@@ -250,7 +250,8 @@ function Show-AlreadyRunningNotice {
     $notice.Dispose()
 }
 
-# Sleep while keeping the tray icon responsive
+# Sleep while keeping the tray icon responsive. Returns early when Exit is
+# clicked, so quitting never waits out a long pause (e.g. the 30 s error wait).
 function Wait-Responsive {
     param(
         [int]$Milliseconds
@@ -260,6 +261,11 @@ function Wait-Responsive {
 
     while ([MouseApi]::Since($start) -lt $Milliseconds) {
         [System.Windows.Forms.Application]::DoEvents()
+
+        if ($ExitRequested) {
+            return
+        }
+
         Start-Sleep -Milliseconds 20
     }
 }

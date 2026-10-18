@@ -291,7 +291,20 @@ function ConvertFrom-ActionLine {
     elseif ($command -eq "focus") {
 
         # Everything after the command, so window titles may contain spaces
-        $target = $text.Substring($tokens[0].Length).Trim().Trim('"').Trim("'").Trim()
+        $target = $text.Substring($tokens[0].Length).Trim()
+        $step.Mode = "window"
+
+        # "focus tab TEXT" looks for a browser tab instead of a window
+        if ($target -match '^tab(\s+(.*))?$') {
+            $step.Mode = "tab"
+            $target = "$($matches[2])".Trim()
+
+            if (-not $target.Trim('"').Trim("'").Trim()) {
+                throw "focus tab needs part of a tab title, e.g. 'focus tab whatsapp'"
+            }
+        }
+
+        $target = $target.Trim('"').Trim("'").Trim()
 
         if (-not $target) {
             throw "focus needs a process name or part of a window title, e.g. 'focus notepad'"

@@ -69,6 +69,18 @@ Expect one log line per click, key, scroll and focus, then `Run once: done`. A b
 
 **Tray icons:** render `Get-StateIcon` for every state at a few progress values into a scaled-up PNG and look at it. A dot-sourced `Random.ps1`, `Input.ps1` and `Tray.ps1` are enough, so the full app isn't needed.
 
+**Browser tabs (`focus tab`):** without a browser, open a WinForms window with a `TabControl` (e.g. tabs "Inbox", "WhatsApp", "News"). Then check with `browsers=powershell`, since the test window belongs to a `powershell` process:
+- `Find-BrowserTab "whatsapp" @("powershell")` finds the tab.
+- `[TabFinder]::Select(...)` switches it, and `Get-SelectedTabInWindow` gives back the original tab.
+- `-RunOnce -DryRun` with `focus tab whatsapp` logs `would select`.
+
+On a PC with Edge, this read-only probe lists what UI Automation sees, with `*` marking the selected tab. It selects nothing:
+
+```powershell
+. .\modules\Browser.ps1
+Get-BrowserTabs @("msedge") | ForEach-Object { "{0} '{1}'  in '{2}'" -f $(if ($_.IsSelected) {"*"} else {" "}), $_.Name, $_.WindowTitle }
+```
+
 **Can't be tested safely by an agent:** real window focusing, real key presses, and display changes. Ask the user to check these.
 
 ## Checklist before handing back

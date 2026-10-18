@@ -8,6 +8,7 @@ $script:ActionError     = $null
 $script:ActionStamp     = ""
 $script:LastCycleResult = ""
 $script:FocusRestore    = [IntPtr]::Zero
+$script:TabRestore      = $null
 
 # Reloads the actions file when its path, size or time stamp changes.
 # Logs once per change, so a broken file doesn't flood the log.
@@ -45,11 +46,111 @@ function Sync-ActionScript {
     }
 }
 
+# Brings a window to the front, remembering the previous one the first time
+function Set-FocusWindow {
+    param(
+        [IntPtr]$Handle,
+        [string]$Title
+    )
+
+    if ($FocusRestore -eq [IntPtr]::Zero) {
+        $script:FocusRestore = [MouseApi]::GetForeground()
+    }
+
+    if (-not [MouseApi]::FocusWindow($Handle)) {
+        $script:InterruptDetail = "Windows did not bring '$Title' to the front"
+        throw "FocusFailed"
+    }
+}
+
+# focus tab NAME: find the browser tab, bring its window to the front, select the tab.
+# Selecting uses UI Automation (no input); if the tab doesn't support that, it is clicked.
+function Invoke-FocusTabStep {
+    param(
+        [hashtable]$Step,
+        [string]$Tag
+    )
+
+    try {
+        $tab = Find-BrowserTab $Step.Target $Browsers
+    }
+    catch {
+        $script:InterruptDetail = "couldn't read browser tabs: $($_.Exception.Message)"
+        throw "FocusFailed"
+    }
+
+    if (-not $tab) {
+        $script:InterruptDetail = "no open tab matches '$($Step.Target)' in $($Browsers -join ', ')"
+        throw "FocusFailed"
+    }
+
+    $where = "'$($tab.Name)' in '$($tab.WindowTitle)'"
+
+    if ($IsDryRun) {
+        $note = if ($tab.IsSelected) { "already selected" } else { "would select" }
+        Write-Log "${Tag}Focus tab: $where ($note)"
+        Wait-Action (Get-NaturalRandom 150 400)
+        return
+    }
+
+    Set-FocusWindow $tab.WindowHandle $tab.WindowTitle
+    Wait-Action (Get-NaturalRandom 150 400)
+
+    $how = "already selected"
+
+    if (-not $tab.IsSelected) {
+
+        # Remember the tab that was showing, to switch back at the end of the cycle
+        if (-not $TabRestore) {
+            $script:TabRestore = Get-SelectedTabInWindow $tab $Browsers
+        }
+
+        $how = $null
+
+        try {
+            $how = [TabFinder]::Select($tab.Element)
+        }
+        catch {
+            # E.g. ElementNotAvailableException when the tab was just closed
+            $script:InterruptDetail = "couldn't select tab ${where}: $($_.Exception.Message)"
+            throw "FocusFailed"
+        }
+
+        Wait-Action (Get-NaturalRandom 100 250)
+
+        # Some tabs report a selection method but ignore it; clicking always works
+        if (-not $how -or -not [TabFinder]::IsSelected($tab.Element)) {
+
+            $center = [TabFinder]::GetCenter($tab.Element)
+
+            if (-not $center) {
+                $script:InterruptDetail = "tab $where can't be selected and isn't on screen to click"
+                throw "FocusFailed"
+            }
+
+            Move-CursorTo $center[0] $center[1]
+            Wait-Action (Get-NaturalRandom 80 250)
+            Invoke-MouseClick "left"
+            $how = "click"
+        }
+    }
+
+    Write-Log "${Tag}Focus tab: $where ($how)"
+
+    # Give the page a moment to show before the next step
+    Wait-Action (Get-NaturalRandom 150 400)
+}
+
 function Invoke-FocusStep {
     param(
         [hashtable]$Step,
         [string]$Tag
     )
+
+    if ($Step.Mode -eq "tab") {
+        Invoke-FocusTabStep $Step $Tag
+        return
+    }
 
     $hWnd = [MouseApi]::FindWindowByText($Step.Target)
 
@@ -61,16 +162,7 @@ function Invoke-FocusStep {
     $title = [MouseApi]::GetWindowTitle($hWnd)
 
     if (-not $IsDryRun) {
-
-        # Remember the window that was in front before the first focus step
-        if ($FocusRestore -eq [IntPtr]::Zero) {
-            $script:FocusRestore = [MouseApi]::GetForeground()
-        }
-
-        if (-not [MouseApi]::FocusWindow($hWnd)) {
-            $script:InterruptDetail = "Windows did not bring '$title' to the front"
-            throw "FocusFailed"
-        }
+        Set-FocusWindow $hWnd $title
     }
 
     Write-Log "${Tag}Focus: '$title'"
@@ -155,6 +247,7 @@ function Invoke-ActionCycle {
     $script:CycleDisplay = Get-DisplaySignature
     $script:CyclePoint = $null
     $script:FocusRestore = [IntPtr]::Zero
+    $script:TabRestore = $null
     $script:LastCycleResult = "done"
     $script:InAction = $true
 
@@ -217,10 +310,22 @@ function Invoke-ActionCycle {
     finally {
         Hide-ClickMarkers
 
+        # Switch the browser back to the tab it was showing. Only without
+        # input: a click here could no longer be cancelled by the user.
+        if ($RestoreFocus -and $TabRestore) {
+            try {
+                [TabFinder]::Select($TabRestore.Element) | Out-Null
+            }
+            catch {
+                Write-Log "Couldn't switch back to tab '$($TabRestore.Name)': $($_.Exception.Message)"
+            }
+        }
+
         if ($RestoreFocus -and $FocusRestore -ne [IntPtr]::Zero) {
             [MouseApi]::FocusWindow($FocusRestore) | Out-Null
         }
 
+        $script:TabRestore = $null
         $script:FocusRestore = [IntPtr]::Zero
         $script:CycleDisplay = $null
         $script:InAction = $false
