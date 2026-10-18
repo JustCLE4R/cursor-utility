@@ -149,6 +149,31 @@ With progress, the dot is drawn as a ring that fills clockwise in 12 steps. In a
 - End break now (only during a break)
 - Exit
 
+## Watchdog and start at logon
+
+```
+Task Scheduler (at logon, +30 s)  ─┐
+run.bat ───────────────────────────┴─> wscript run.vbs ─> powershell watchdog.ps1 ─> powershell cursor-utility.ps1 -HeartbeatFile logs\heartbeat.txt
+```
+
+- **`install-task.ps1`:** registers the logon task for the current user:
+  - interactive logon, because it needs the desktop
+  - `Limited` run level, or `Highest` with `-Elevated`
+  - `IgnoreNew` for multiple instances, no time limit
+
+  `wscript` returns at once, so the task itself doesn't restart anything. That's the watchdog's job.
+- **`watchdog.ps1`:** a separate process. It dot-sources only `Log.ps1` and `Config.ps1`, and logs to `logs\watchdog.log` so it never contends with the app for one file.
+  - **Single instance:** mutex `Local\CursorUtility-Watchdog`, bypassed for dry runs and `-RunOnce`, like the app's.
+  - **Before each start:** reads `[watchdog]`, deletes the old heartbeat, and starts the app hidden, redirecting its stderr to `logs\app-errors.txt`.
+  - **Every 5 s:** checks whether the app has exited, and how old the heartbeat is.
+  - **Exit code 0:** a normal exit (tray Exit, `enabled=false`, already running), so the watchdog stops too.
+  - **Any other exit code:** a crash. The app's stderr is copied into the log, then it restarts.
+  - **Heartbeat older than `hang_seconds`:** `Stop-Process`, then restart.
+  - **Restart delay:** 5 s, doubling up to 60 s. If there are more than `max_restarts` within 10 minutes, it gives up with exit code 1 and a balloon.
+  - **`-RunOnce` or `enabled=false`:** starts the app once and stops watching.
+- **Heartbeat (`Update-Heartbeat` in `Log.ps1`):** only active when `-HeartbeatFile` is passed. It writes the time at most every 10 s, and is called from `Wait-Responsive` (main loop, tray) and `Wait-Action` (every wait in a cycle). So a long `wait` step keeps beating, while a blocking call, e.g. UI Automation against a frozen browser, doesn't.
+- **Known side effect:** a copy killed for hanging leaves its tray icon behind until you hover over it. That's Windows' usual behaviour for killed tray apps.
+
 ## Display changes
 
 There are no `SystemEvents` hooks: their handlers run on another thread, which PowerShell can't host. Instead:

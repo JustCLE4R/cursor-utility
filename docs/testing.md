@@ -81,6 +81,14 @@ On a PC with Edge, this read-only probe lists what UI Automation sees, with `*` 
 Get-BrowserTabs @("msedge") | ForEach-Object { "{0} '{1}'  in '{2}'" -f $(if ($_.IsSelected) {"*"} else {" "}), $_.Name, $_.WindowTitle }
 ```
 
+**Watchdog:** start `watchdog.ps1 -Config <temp> -DryRun`, with a temp config that has `idle_seconds=99999` (so nothing clicks) and `hang_seconds=30`. Find the app copy by its `-Config` path in `Win32_Process.CommandLine`. Then:
+- **Crash:** `Stop-Process` the app. Expect "exited with code -1. Restarting in 5 s". With `max_restarts=1`, a second kill should make the watchdog give up (exit code 1, balloon).
+- **Hang:** freeze the app with `ntdll!NtSuspendProcess`. Expect "stopped responding (no heartbeat for ~35 s)", then a kill and a restart.
+- **Normal stop:** add `[general] enabled=false` to the temp config. The app exits 0, and the watchdog logs "exited normally. Watchdog stopping."
+- **Read `logs\watchdog.log`** for the sequence. A full run of all three takes about 2 minutes.
+
+**Scheduled task:** `.\install-task.ps1 -TaskName "Cursor Utility Test"`, then check it with `Get-ScheduledTask`: the action is `wscript.exe "<repo>\run.vbs"`, it uses a logon trigger with `PT30S` delay, and the logon type is `Interactive`. Then run it again with `-Elevated` (run level should be `Highest`), and finally `-Uninstall`. Don't `-Start` it: that would launch a real, non-dry-run copy.
+
 **Can't be tested safely by an agent:** real window focusing, real key presses, and display changes. Ask the user to check these.
 
 ## Checklist before handing back

@@ -17,6 +17,10 @@
 .PARAMETER Overlay
     Show red markers where each click will land. Same as [debug] overlay=true.
 
+.PARAMETER HeartbeatFile
+    Set by watchdog.ps1: a file that gets the current time every 10 s or so,
+    so the watchdog can tell the script is still responding.
+
 .EXAMPLE
     .\cursor-utility.ps1 -RunOnce -DryRun -Overlay
 #>
@@ -25,7 +29,8 @@ param(
     [string]$ConfigPath,
     [switch]$DryRun,
     [switch]$RunOnce,
-    [switch]$Overlay
+    [switch]$Overlay,
+    [string]$HeartbeatFile
 )
 
 $ErrorActionPreference = "Stop"

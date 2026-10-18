@@ -261,6 +261,7 @@ function Wait-Responsive {
 
     while ([MouseApi]::Since($start) -lt $Milliseconds) {
         [System.Windows.Forms.Application]::DoEvents()
+        Update-Heartbeat
 
         if ($ExitRequested) {
             return

@@ -216,7 +216,7 @@ Describe "Import-Settings" {
     It "searches the common browsers for tabs by default" {
         Import-Settings (New-TestIni @(""))
 
-        ($Browsers -join ",") | Should Be "msedge,chrome,brave,vivaldi,opera,firefox"
+        ($Browsers -join ",") | Should Be "msedge,chrome,brave,opera,firefox,vivaldi"
     }
 
     It "reads the browser list with commas or spaces, any case, with or without .exe" {
@@ -228,7 +228,28 @@ Describe "Import-Settings" {
     It "falls back to the default browsers for an empty list" {
         Import-Settings (New-TestIni @("[actions]", "browsers= , "))
 
-        ($Browsers -join ",") | Should Be "msedge,chrome,brave,vivaldi,opera,firefox"
+        ($Browsers -join ",") | Should Be "msedge,chrome,brave,opera,firefox,vivaldi"
+    }
+
+    It "uses watchdog defaults for an empty file" {
+        Import-Settings (New-TestIni @(""))
+
+        $WatchdogEnabled | Should Be $true
+        $HangSeconds | Should Be 180
+        $MaxRestarts | Should Be 5
+    }
+
+    It "reads and clamps the watchdog section" {
+        Import-Settings (New-TestIni @("[watchdog]", "enabled=false", "hang_seconds=90", "max_restarts=3"))
+
+        $WatchdogEnabled | Should Be $false
+        $HangSeconds | Should Be 90
+        $MaxRestarts | Should Be 3
+
+        Import-Settings (New-TestIni @("[watchdog]", "hang_seconds=5", "max_restarts=0"))
+
+        $HangSeconds | Should Be 30
+        $MaxRestarts | Should Be 1
     }
 
     It "reads the break section" {

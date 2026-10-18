@@ -357,6 +357,7 @@ function Wait-Action {
 
     while ([MouseApi]::Since($start) -lt $Milliseconds) {
         Assert-NotInterrupted
+        Update-Heartbeat
         Start-Sleep -Milliseconds 15
     }
 }

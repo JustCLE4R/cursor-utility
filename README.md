@@ -160,14 +160,37 @@ The shipped `actions.txt` explains every command in its comments, and its defaul
 
 ## Start with Windows
 
-1. Press **Win + R**, type `shell:startup` and press Enter.
-2. Right-click in the folder → **New → Shortcut**, and browse to `run.bat` in this folder.
+Register a Task Scheduler task that starts it 30 seconds after you log on:
 
-To stop it starting with Windows, delete the shortcut.
+```powershell
+.\install-task.ps1                 # install, or update an existing one
+.\install-task.ps1 -Start          # ...and start it now
+.\install-task.ps1 -Elevated       # run as administrator (from an admin PowerShell)
+.\install-task.ps1 -Uninstall      # remove it
+```
+
+**When to use `-Elevated`:** Windows doesn't let a normal program move the cursor or click while an **admin window** is in front, e.g. VS Code started as Administrator. `-Elevated` runs it with the highest privileges so it works there too. Installing that way needs an admin PowerShell.
+
+If you used a Startup-folder shortcut before, the installer tells you so you can delete it.
+
+## Watchdog
+
+`run.bat` (and the scheduled task) start Cursor Utility through **`watchdog.ps1`**, which looks after it:
+
+| Situation | What the watchdog does |
+|---|---|
+| It crashes | Restarts it after 5 s, waiting longer after each further crash (10 s, 20 s, 40 s, then 60 s) |
+| It stops responding for 3 minutes (no heartbeat) | Stops it and restarts it |
+| More than 5 restarts within 10 minutes | Gives up, shows a notice and writes the reason to `logs\watchdog.log` |
+| You click **Exit** in the tray | Nothing: a normal exit stops the watchdog too |
+
+To stop it for good, use **Exit** in the tray menu. Killing it in Task Manager counts as a crash, so the watchdog starts it again.
+
+The watchdog writes to its own log, `logs\watchdog.log`. If Cursor Utility crashes, its error message is copied in there too. Change the limits, or turn the watchdog off, in the `[watchdog]` section of `config.ini`.
 
 ## Logs
 
-Activity is logged to `logs\cursor-utility.log`. When the file reaches 1 MB, it's renamed to `cursor-utility.log.old` and a new one is started. Only state changes are logged, so the file grows slowly. Set `log_enabled=false` to turn logging off.
+Activity is logged to `logs\cursor-utility.log`, and the watchdog's restarts to `logs\watchdog.log`. When the file reaches 1 MB, it's renamed to `cursor-utility.log.old` and a new one is started. Only state changes are logged, so the file grows slowly. Set `log_enabled=false` to turn logging off.
 
 ## Known issues
 
@@ -180,7 +203,9 @@ The full list, with fixes, is in [docs/problems.md](docs/problems.md). Planned f
 ## Project layout
 
 ```
-run.bat / run.vbs     Hidden launcher
+run.bat / run.vbs     Hidden launcher (starts the watchdog)
+watchdog.ps1          Starts Cursor Utility and restarts it after a crash or hang
+install-task.ps1      Start at logon via Task Scheduler
 cursor-utility.ps1    Main script: options, startup, main loop
 modules/              Config, schedule, action parser, input, tray, overlay, cycle runner
 tests/                Pester unit tests

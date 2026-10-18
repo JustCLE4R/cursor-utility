@@ -44,6 +44,8 @@ A missing `-Config` file is created with defaults. Logs always go to `logs\curso
 ```
 README.md            User guide (setup, tray, settings)
 cursor-utility.ps1   Entry point: parameters, loading modules, startup, main loop
+watchdog.ps1         Starts cursor-utility.ps1, restarts it after a crash or a missed heartbeat
+install-task.ps1     Registers / removes the Task Scheduler logon task
 modules/
   Config.ps1         INI parsing, default config text, Import-Settings          (pure)
   Log.ps1            Write-Log with 1 MB rotation
@@ -59,12 +61,13 @@ modules/
 tests/               Pester tests for the pure modules
 config.ini           User settings (live-reloaded; git-ignored)
 actions.txt          Example actions file with the command reference (live-reloaded)
-run.bat, run.vbs     Hidden launcher (wscript -> powershell -WindowStyle Hidden)
+run.bat, run.vbs     Hidden launcher (wscript -> powershell watchdog.ps1 -> cursor-utility.ps1)
 docs/                Detailed docs (see below)
   actions.md         Actions file format
   ideas.md           Feature backlog; tick items when done
   problems.md        Known bugs with line refs and suggested fixes
-logs/                Runtime log (not source)
+logs/                Runtime logs (not source): cursor-utility.log, watchdog.log,
+                     heartbeat.txt, app-errors.txt
 ```
 
 ## Docs
@@ -82,7 +85,8 @@ logs/                Runtime log (not source)
 
 1. **Never let real input run while testing.** Use `-DryRun`, which also stops keys, scrolling and window switching. Real clicks hit the Start button and whatever window is in the top-left corner (see `docs/problems.md` #1). Running without `-DryRun` takes over the user's mouse and keyboard, so only do it if they ask.
 2. **Don't edit the user's `config.ini` or `actions.txt` to test.** Pass `-Config <temp path>` instead, with its own `[actions] file=`. The user's running copy reloads both files live, so edits take effect right away.
-3. **A copy may already be running** (hidden `powershell.exe` with a tray icon). It doesn't pick up code changes until it's restarted, so tell the user to restart it. Don't kill it without asking. A normal (non-dry-run) start exits while that copy holds the single-instance mutex; dry runs and `-RunOnce` don't need it.
+3. **A copy may already be running** (hidden `powershell.exe` with a tray icon, usually under `watchdog.ps1`). It doesn't pick up code changes until it's restarted, so tell the user to restart it. Don't kill it without asking; **killing the app under a watchdog counts as a crash, and it gets restarted**. A normal (non-dry-run) start exits while that copy holds the single-instance mutex; dry runs and `-RunOnce` don't need it, and neither do dry-run or `-RunOnce` watchdogs.
+   - **Scheduled task:** don't register or remove the user's real "Cursor Utility" task to test. Use `install-task.ps1 -TaskName "Cursor Utility Test"`, then `-Uninstall` it.
 4. **Stay compatible with PowerShell 5.1.** No `??`, `?.`, ternary, `&&`/`||`, `-Parallel`, or `ConvertFrom-Json -AsHashtable`. C# passed to `Add-Type` must compile under the .NET Framework compiler (C# 5): no `$"..."` string interpolation, `=>` members or `out var`.
 5. **Modules are dot-sourced, not imported.** Every function and `$script:` variable shares the entry script's scope. Write shared state as `$script:Name = ...` and read it as plain `$Name`. Don't convert them to `.psm1` without redesigning the shared state (see architecture).
 6. **Keep the pure modules pure.** `Config.ps1`, `Schedule.ps1`, `Random.ps1` and `ActionScript.ps1` must load without WinForms, Win32 or the tray, so the tests can dot-source them directly. Pass time and config in as parameters (e.g. `Test-ScheduleActive -Ini -Now`) rather than reading globals.

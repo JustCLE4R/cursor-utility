@@ -40,6 +40,9 @@
 | `break.chance_percent` | `5` | 0–100 | chance of a break after each finished cycle |
 | `break.min_minutes` | `5` | ≥ 1 | shortest break |
 | `break.max_minutes` | `20` | ≥ min | longest break |
+| `watchdog.enabled` | `true` | — | when started through `run.bat`/`run.vbs`/the scheduled task, restart after crashes and hangs. `false` = start it once and don't watch. Read by `watchdog.ps1` before each start. |
+| `watchdog.hang_seconds` | `180` | ≥ 30 | restart if the heartbeat is older than this |
+| `watchdog.max_restarts` | `5` | ≥ 1 | give up after more restarts than this within 10 minutes |
 | `schedule.<shift>_enabled` | `true` | — | shift on/off |
 | `schedule.<shift>_start` / `_end` | see below | `TimeSpan.Parse`; invalid values throw | `HH:mm`, both ends included; may cross midnight |
 | `debug.dry_run` | `false` | — | same as `-DryRun` |

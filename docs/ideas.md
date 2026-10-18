@@ -105,8 +105,8 @@ Everything that could be added to Cursor Utility, grouped by area.
 
 ## Reliability
 
-- [ ] **Watchdog:** auto-restart after a crash
-- [ ] **Scheduled task** at logon instead of the Startup folder
+- [x] **Watchdog:** auto-restart after a crash, or after a missed heartbeat (hang)
+- [x] **Scheduled task** at logon instead of the Startup folder
 - [x] **Display change handling:** re-read the screen size when monitors or resolution change
 - [ ] **Per-monitor DPI** (`SetProcessDpiAwarenessContext`) for mixed scaling
 - [ ] **`SendInput`** instead of the legacy `mouse_event`

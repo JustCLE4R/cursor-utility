@@ -94,8 +94,8 @@ log_enabled=true
 
 [activity]
 # Seconds between each corner-click cycle
-min_interval_seconds=60
-max_interval_seconds=120
+min_interval_seconds=15
+max_interval_seconds=60
 # Only run after you have not touched mouse/keyboard for this long
 idle_seconds=120
 # Move cursor back to where it was after clicking
@@ -128,6 +128,14 @@ chance_percent=1
 # Break length in minutes
 min_minutes=5
 max_minutes=20
+
+[watchdog]
+# Restart Cursor Utility if it crashes or stops responding (when started with run.bat)
+enabled=true
+# Restart it if it hasn't checked in for this many seconds (minimum 30)
+hang_seconds=180
+# Give up after this many restarts within 10 minutes
+max_restarts=5
 
 [schedule]
 # Note: these three shifts overlap and cover all 24 hours.
@@ -218,6 +226,10 @@ function Import-Settings {
     $script:BreakMinMinutes = Get-IniInt   $Ini "break.min_minutes" 5
     $script:BreakMaxMinutes = Get-IniInt   $Ini "break.max_minutes" 20
 
+    $script:WatchdogEnabled = Get-IniBool  $Ini "watchdog.enabled" $true
+    $script:HangSeconds     = Get-IniInt   $Ini "watchdog.hang_seconds" 180
+    $script:MaxRestarts     = Get-IniInt   $Ini "watchdog.max_restarts" 5
+
     $script:IsDryRun        = [bool]$DryRun -or (Get-IniBool $Ini "debug.dry_run" $false)
     $script:ShowOverlay     = [bool]$Overlay -or (Get-IniBool $Ini "debug.overlay" $false)
 
@@ -233,6 +245,9 @@ function Import-Settings {
     if ($BreakChance -gt 100) { $script:BreakChance = 100 }
     if ($BreakMinMinutes -lt 1) { $script:BreakMinMinutes = 1 }
     if ($BreakMaxMinutes -lt $BreakMinMinutes) { $script:BreakMaxMinutes = $BreakMinMinutes }
+    # Below 30 s the heartbeat (every 10 s) could look late during normal work
+    if ($HangSeconds -lt 30) { $script:HangSeconds = 30 }
+    if ($MaxRestarts -lt 1) { $script:MaxRestarts = 1 }
 
     # The actions file is relative to the config file's folder
     $script:ActionsPath = ""
