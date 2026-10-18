@@ -40,7 +40,8 @@ function Test-ShiftActive {
     return ($Current -ge $Start -or $Current -le $End)
 }
 
-function Test-ScheduleActive {
+# The first enabled shift that covers $Now, as @{ Name; Start; End }, or $null
+function Get-ActiveShift {
     param(
         [hashtable]$Ini,
         [datetime]$Now = (Get-Date)
@@ -53,13 +54,44 @@ function Test-ScheduleActive {
         $name = $shift[0]
 
         $enabled = Get-IniBool $Ini "schedule.$($name)_enabled" $true
-        $start = Convert-ToMinutes (Get-IniValue $Ini "schedule.$($name)_start" $shift[1])
-        $end = Convert-ToMinutes (Get-IniValue $Ini "schedule.$($name)_end" $shift[2])
+        $startText = Get-IniValue $Ini "schedule.$($name)_start" $shift[1]
+        $endText = Get-IniValue $Ini "schedule.$($name)_end" $shift[2]
+
+        $start = Convert-ToMinutes $startText
+        $end = Convert-ToMinutes $endText
 
         if (Test-ShiftActive $enabled $start $end $currentMinutes) {
-            return $true
+            return @{ Name = $name; Start = $startText; End = $endText }
         }
     }
 
-    return $false
+    return $null
+}
+
+function Test-ScheduleActive {
+    param(
+        [hashtable]$Ini,
+        [datetime]$Now = (Get-Date)
+    )
+
+    return ($null -ne (Get-ActiveShift $Ini $Now))
+}
+
+# 42 -> "42s", 750 -> "12m 30s", 4000 -> "1h 06m"
+function Format-Duration {
+    param(
+        [double]$Seconds
+    )
+
+    $total = [int][Math]::Max(0, [Math]::Ceiling($Seconds))
+
+    if ($total -lt 60) {
+        return "${total}s"
+    }
+
+    if ($total -lt 3600) {
+        return "{0}m {1:00}s" -f [Math]::Floor($total / 60), ($total % 60)
+    }
+
+    return "{0}h {1:00}m" -f [Math]::Floor($total / 3600), [Math]::Floor(($total % 3600) / 60)
 }

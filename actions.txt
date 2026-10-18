@@ -1,0 +1,56 @@
+# Cursor Utility actions
+#
+# Used when config.ini has:   [actions]  file=actions.txt
+# Each cycle runs the steps below from top to bottom.
+# One step per line. Lines starting with # or ; are comments.
+# The file is reloaded when you save it. A mistake pauses cycles and shows
+# the line number in the tray and the log until it's fixed.
+#
+# ------------------------------------------------------------
+# Commands
+# ------------------------------------------------------------
+#   move   X Y              Move the cursor (curved and eased, like the corners)
+#   click                   Left click where the cursor is
+#   click  TYPE             Click where the cursor is. TYPE: left, right, middle, double
+#   click  X Y [TYPE]       Move to X Y, then click (left if no TYPE)
+#   key    COMBO            Press keys, e.g. f15, shift, scrolllock, ctrl+shift+f15
+#   scroll DIR [N]          Turn the wheel N notches (default 1). DIR: up, down, left, right
+#   wait   MS               Pause, in milliseconds, e.g. wait 500
+#   wait   MIN-MAX          Pause for a natural random time, e.g. wait 700-2200
+#   focus  NAME             Bring a window to the front: a process name (notepad, teams,
+#                           chrome) or part of its title. If no window matches, the
+#                           cycle is cancelled. The previous window comes back at the
+#                           end of the cycle (restore_focus in config.ini).
+#
+# X and Y (pixels on the primary monitor; 0,0 is its top-left corner)
+#   250                     Pixels. Negative values reach monitors left of or above it.
+#   50%                     Percent of the screen width (X) or height (Y)
+#   left  center  right     For X
+#   top   center  bottom    For Y ("middle" works too)
+#   right-20  top+15        A word plus or minus pixels
+#
+# Keys: a-z, 0-9, f1-f24, shift, ctrl, alt, win, esc, enter, tab, space,
+#   backspace, insert, delete, home, end, pageup, pagedown, up, down, left, right,
+#   capslock, numlock, scrolllock, pause, printscreen, apps, volumeup,
+#   volumedown, volumemute, playpause
+#
+# ------------------------------------------------------------
+# Steps (this default does the same as the built-in corner clicks)
+# ------------------------------------------------------------
+
+click left top
+wait 700-2200
+click left bottom
+
+# ------------------------------------------------------------
+# More ideas, uncomment to try (test with: run.bat -DryRun)
+# ------------------------------------------------------------
+# key f15
+# wait 300-800
+# focus notepad
+# click center center
+# scroll down 3
+# wait 400-900
+# scroll up 3
+# click right-10 bottom-10 right
+# key esc

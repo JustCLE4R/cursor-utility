@@ -68,7 +68,8 @@ function Show-ClickMarkers {
 
     # Compile on first use only, so normal runs start faster
     if (-not ("OverlayMarker" -as [type])) {
-        Add-Type -TypeDefinition $OverlaySource -ReferencedAssemblies System.Windows.Forms, System.Drawing
+        # The form only overrides protected members, which Add-Type warns about
+        Add-Type -TypeDefinition $OverlaySource -ReferencedAssemblies System.Windows.Forms, System.Drawing -WarningAction SilentlyContinue
     }
 
     Hide-ClickMarkers

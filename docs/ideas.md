@@ -20,9 +20,9 @@ Everything that could be added to Cursor Utility, grouped by area.
 - [ ] **Auto-resume** after a timed pause
 - [ ] **Double-click the tray icon** to open settings
 - [ ] **Tray menu shortcuts:** open config, open log, reload config, open folder
-- [ ] **More icon states:** green running, yellow waiting for idle, blue outside schedule, gray off
-- [ ] **Countdown on the icon:** seconds until the next click
-- [ ] **Single instance:** block a second copy from launching
+- [x] **More icon states:** green running, yellow waiting for idle, blue outside schedule, gray off
+- [x] **Countdown on the icon:** seconds until the next click (as a ring that fills, plus the tooltip)
+- [x] **Single instance:** block a second copy from launching
 - [ ] **Restart** from the tray
 
 ## Settings window
@@ -35,16 +35,16 @@ Everything that could be added to Cursor Utility, grouped by area.
 
 ## Actions
 
-- [ ] ⭐ **Custom point list:** any number of points with x, y and action, instead of fixed corners
-- [ ] **Click types:** left, right, middle, double-click, or move only
-- [ ] **Key presses:** Shift, F15, Scroll Lock or any key, instead of or as well as clicks
-- [ ] **Scroll wheel** up/down
+- [x] ⭐ **Custom point list:** any number of points with x, y and action, instead of fixed corners
+- [x] **Click types:** left, right, middle, double-click, or move only
+- [x] **Key presses:** Shift, F15, Scroll Lock or any key, instead of or as well as clicks
+- [x] **Scroll wheel** up/down
 - [ ] **Random order** of points each cycle
 - [ ] **Random offset** of a few pixels around each point
 - [ ] **Skip a click sometimes** (e.g. 10% of cycles do nothing)
 - [ ] **Monitor selection:** primary, a specific monitor, or the whole virtual desktop
 - [ ] **Window-relative points** (e.g. "click inside app X")
-- [ ] **Focus a window** before clicking, then restore the previous one
+- [x] **Focus a window** before clicking, then restore the previous one
 - [ ] **Safe-click check:** look at what is under the cursor (Start, Widgets, a close button) and skip if risky
 - [ ] **Press Esc after clicking** to close any menu the click opened
 - [ ] **Macro recorder:** record a mouse/keyboard sequence and replay it
@@ -52,7 +52,7 @@ Everything that could be added to Cursor Utility, grouped by area.
 ## Timing and natural behaviour
 
 - [ ] **Time-of-day patterns:** less activity at lunch, more in the morning
-- [ ] **Occasional long breaks**, like a person getting coffee
+- [x] **Occasional long breaks**, like a person getting coffee
 - [ ] **Per-session speed variation**
 - [ ] **Overshoot and correction** at the end of a movement
 - [ ] **Tiny jitter** during movement
@@ -107,7 +107,7 @@ Everything that could be added to Cursor Utility, grouped by area.
 
 - [ ] **Watchdog:** auto-restart after a crash
 - [ ] **Scheduled task** at logon instead of the Startup folder
-- [ ] **Display change handling:** re-read the screen size when monitors or resolution change
+- [x] **Display change handling:** re-read the screen size when monitors or resolution change
 - [ ] **Per-monitor DPI** (`SetProcessDpiAwarenessContext`) for mixed scaling
 - [ ] **`SendInput`** instead of the legacy `mouse_event`
 - [ ] **Config backup** and recovery if `config.ini` is corrupted

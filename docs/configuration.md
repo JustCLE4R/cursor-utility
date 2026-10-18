@@ -5,11 +5,13 @@
 | Option | Effect |
 |---|---|
 | `-Config <path>` | Config file to use. Default: `config.ini` next to the script. Relative paths resolve from the current directory. A missing file is created with defaults. |
-| `-DryRun` | No cursor movement or clicks. Log lines get `[dry-run]` and the tooltip says "(dry run)". Forces `debug.dry_run` on. |
-| `-RunOnce` | One cycle immediately, ignoring the schedule and idle time, then exit. |
-| `-Overlay` | Red markers at the click points during a cycle. Forces `debug.overlay` on. |
+| `-DryRun` | No cursor movement, clicks, keys, scrolling or window switching. Log lines get `[dry-run]`, the tooltip says "(dry run)" and the icon gets a white badge. Forces `debug.dry_run` on. |
+| `-RunOnce` | One cycle immediately, ignoring the schedule, idle time and breaks, then exit. Exit code 1 if the actions file has an error. |
+| `-Overlay` | Red markers at every `move`/`click` point during a cycle. Forces `debug.overlay` on. |
 
 `run.bat` and `run.vbs` pass any arguments on to the script.
+
+**Single instance:** only one normal copy runs at a time. A second copy logs "Another copy is already running", shows a short tray notice and exits. A dry run or `-RunOnce` may start next to a running copy, so you can test without stopping it.
 
 ## `config.ini`
 
@@ -31,6 +33,12 @@
 | `click.corner_delay_min_ms` | `700` | ≥ 50 | shortest pause between the two clicks |
 | `click.corner_delay_max_ms` | `2200` | ≥ min | longest pause between the two clicks |
 | `click.order` | `top_first` | `top_first`, `bottom_first` or `random`, any case; anything else → `top_first` | which corner is clicked first; `random` picks again each cycle |
+| `actions.file` | empty | path; relative to the config file's folder | run the steps in this file instead of the corner clicks; see [actions.md](actions.md). Empty = corner clicks, which use the `click.*` keys. |
+| `actions.restore_focus` | `true` | — | after a cycle with a `focus` step, bring back the window that was in front before |
+| `break.enabled` | `false` | — | take an occasional longer break |
+| `break.chance_percent` | `5` | 0–100 | chance of a break after each finished cycle |
+| `break.min_minutes` | `5` | ≥ 1 | shortest break |
+| `break.max_minutes` | `20` | ≥ min | longest break |
 | `schedule.<shift>_enabled` | `true` | — | shift on/off |
 | `schedule.<shift>_start` / `_end` | see below | `TimeSpan.Parse`; invalid values throw | `HH:mm`, both ends included; may cross midnight |
 | `debug.dry_run` | `false` | — | same as `-DryRun` |
@@ -38,7 +46,13 @@
 
 Values below the minimum are raised to it. If a maximum is below its minimum, it's set to the minimum.
 
-Random values (intervals, delays) are drawn from a bell curve centred on the middle of the range, with the range covering ±3σ, and clamped to `[min, max]`.
+Random values (intervals, delays, break lengths, `wait MIN-MAX`) are drawn from a bell curve centred on the middle of the range, with the range covering ±3σ, and clamped to `[min, max]`.
+
+### Breaks
+
+- **When:** after each cycle that finishes, a break starts with probability `chance_percent`. With the defaults (5%, 60–120 s between cycles), that's roughly one break every 30 minutes of idle time.
+- **During a break:** no cycles run. The tray turns purple, its ring fills as the break passes, and the tooltip and menu show when it ends.
+- **Ending early:** right-click the tray icon → **End break now**.
 
 ### Shifts
 

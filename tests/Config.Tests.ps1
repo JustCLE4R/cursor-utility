@@ -125,6 +125,13 @@ Describe "New-DefaultConfig" {
         $CornerDelayMin | Should Be 700
         $CornerDelayMax | Should Be 2200
         $ClickOrder | Should Be "top_first"
+        $ActionsFile | Should Be ""
+        $ActionsPath | Should Be ""
+        $RestoreFocus | Should Be $true
+        $BreakEnabled | Should Be $false
+        $BreakChance | Should Be 5
+        $BreakMinMinutes | Should Be 5
+        $BreakMaxMinutes | Should Be 20
         $IsDryRun | Should Be $false
         $ShowOverlay | Should Be $false
     }
@@ -190,6 +197,41 @@ Describe "Import-Settings" {
 
         Import-Settings (New-TestIni @("[click]", "order=sideways"))
         $ClickOrder | Should Be "top_first"
+    }
+
+    It "resolves the actions file next to the config file" {
+        $path = New-TestIni @("[actions]", "file=my-actions.txt")
+
+        Import-Settings $path
+
+        $ActionsPath | Should Be (Join-Path (Split-Path -Parent $path) "my-actions.txt")
+    }
+
+    It "keeps an absolute actions path as it is" {
+        Import-Settings (New-TestIni @("[actions]", "file=C:\somewhere\steps.txt"))
+
+        $ActionsPath | Should Be "C:\somewhere\steps.txt"
+    }
+
+    It "reads the break section" {
+        Import-Settings (New-TestIni @("[break]", "enabled=true", "chance_percent=12", "min_minutes=3", "max_minutes=9"))
+
+        $BreakEnabled | Should Be $true
+        $BreakChance | Should Be 12
+        $BreakMinMinutes | Should Be 3
+        $BreakMaxMinutes | Should Be 9
+    }
+
+    It "clamps break values" {
+        Import-Settings (New-TestIni @("[break]", "chance_percent=250", "min_minutes=0", "max_minutes=-4"))
+
+        $BreakChance | Should Be 100
+        $BreakMinMinutes | Should Be 1
+        $BreakMaxMinutes | Should Be 1
+
+        Import-Settings (New-TestIni @("[break]", "chance_percent=-3"))
+
+        $BreakChance | Should Be 0
     }
 
     It "reads the debug section" {

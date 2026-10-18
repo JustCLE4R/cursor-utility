@@ -4,12 +4,22 @@ Entry point for AI coding agents working on Cursor Utility. Read this first, the
 
 ## What this is
 
-A Windows tray app in PowerShell. While the user is idle and the time is inside an active shift, it moves the mouse to the top-left corner and clicks, then to the bottom-left corner and clicks, then moves back. It repeats every 60–120 seconds, with some randomness. Settings live in `config.ini`, which is reloaded every second.
+A Windows tray app in PowerShell. While the user is idle and the time is inside an active shift, it runs a cycle every 60–120 seconds, with some randomness:
+- **By default:** move to the top-left corner and click, then the bottom-left corner, then move back.
+- **With an actions file:** the user's own steps instead: `move`, `click`, `key`, `scroll`, `wait`, `focus`.
+
+It also has:
+- occasional long breaks
+- single-instance protection
+- display-change handling
+- a tray icon that shows its state
+
+Settings live in `config.ini`, and the steps in `actions.txt`. Both are reloaded live.
 
 - **Runtime:** Windows PowerShell **5.1** (not PowerShell 7), started with `-STA` for WinForms
 - **Target OS:** Windows 10/11
 - **Dependencies:** none outside Windows. Pester **3.4.0** for tests (the version built into Windows)
-- **Version control:** none yet. The folder is not a git repo.
+- **Version control:** git, branch `main`. Commit only when the user asks.
 
 ## Commands
 
@@ -35,18 +45,22 @@ A missing `-Config` file is created with defaults. Logs always go to `logs\curso
 README.md            User guide (setup, tray, settings)
 cursor-utility.ps1   Entry point: parameters, loading modules, startup, main loop
 modules/
-  Config.ps1         INI parsing, default config text, Import-Settings
+  Config.ps1         INI parsing, default config text, Import-Settings          (pure)
   Log.ps1            Write-Log with 1 MB rotation
-  Random.ps1         $Random, Get-NaturalRandom (bell-curve delays)
-  Schedule.ps1       Shift logic (subuh / pagi / malam)
-  Input.ps1          MouseApi (Win32 via Add-Type), idle detection, movement, clicks
-  Tray.ps1           NotifyIcon, on/off toggle, Wait-Responsive
+  Random.ps1         $Random, Get-NaturalRandom (bell-curve delays)             (pure)
+  Schedule.ps1       Shifts, Get-ActiveShift, Format-Duration                   (pure)
+  ActionScript.ps1   Actions-file parser, key table, Get-CornerSteps            (pure)
+  Input.ps1          MouseApi (Win32 via Add-Type): idle detection, movement, clicks,
+                     wheel, keys, window focus, display signature
+  Tray.ps1           State icons, tooltip, info menu, Wait-Responsive
   Overlay.ps1        Debug markers (C# Form compiled on first use)
-  Actions.ps1        Invoke-CornerClicks: one full cycle
-tests/               Pester tests for Config, Schedule, Random
-config.ini           User settings (live-reloaded)
+  Actions.ps1        Sync-ActionScript, Invoke-ActionCycle: runs one cycle of steps
+tests/               Pester tests for the pure modules
+config.ini           User settings (live-reloaded; git-ignored)
+actions.txt          Example actions file with the command reference (live-reloaded)
 run.bat, run.vbs     Hidden launcher (wscript -> powershell -WindowStyle Hidden)
 docs/                Detailed docs (see below)
+  actions.md         Actions file format
   ideas.md           Feature backlog; tick items when done
   problems.md        Known bugs with line refs and suggested fixes
 logs/                Runtime log (not source)
@@ -58,20 +72,22 @@ logs/                Runtime log (not source)
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | changing behaviour, adding a module, touching shared state |
 | [docs/configuration.md](docs/configuration.md) | adding or changing a setting or command-line option |
+| [docs/actions.md](docs/actions.md) | changing the actions file format or adding a command |
 | [docs/testing.md](docs/testing.md) | writing tests or checking a change |
 | [docs/problems.md](docs/problems.md) | fixing bugs |
 | [docs/ideas.md](docs/ideas.md) | picking up a feature |
 
 ## Rules
 
-1. **Never let real clicks run while testing.** Use `-DryRun`. Real clicks hit the Start button and whatever window is in the top-left corner (see `docs/problems.md` #1). Running without `-DryRun` takes over the user's mouse, so only do it if they ask.
-2. **Don't edit the user's `config.ini` to test.** Pass `-Config <temp path>` instead. The user's running copy reloads `config.ini` every second, so edits take effect right away.
-3. **A copy may already be running** (hidden `powershell.exe` with a tray icon). It doesn't pick up code changes until it's restarted, so tell the user to restart it. Don't kill it without asking.
+1. **Never let real input run while testing.** Use `-DryRun`, which also stops keys, scrolling and window switching. Real clicks hit the Start button and whatever window is in the top-left corner (see `docs/problems.md` #1). Running without `-DryRun` takes over the user's mouse and keyboard, so only do it if they ask.
+2. **Don't edit the user's `config.ini` or `actions.txt` to test.** Pass `-Config <temp path>` instead, with its own `[actions] file=`. The user's running copy reloads both files live, so edits take effect right away.
+3. **A copy may already be running** (hidden `powershell.exe` with a tray icon). It doesn't pick up code changes until it's restarted, so tell the user to restart it. Don't kill it without asking. A normal (non-dry-run) start exits while that copy holds the single-instance mutex; dry runs and `-RunOnce` don't need it.
 4. **Stay compatible with PowerShell 5.1.** No `??`, `?.`, ternary, `&&`/`||`, `-Parallel`, or `ConvertFrom-Json -AsHashtable`. C# passed to `Add-Type` must compile under the .NET Framework compiler (C# 5): no `$"..."` string interpolation, `=>` members or `out var`.
 5. **Modules are dot-sourced, not imported.** Every function and `$script:` variable shares the entry script's scope. Write shared state as `$script:Name = ...` and read it as plain `$Name`. Don't convert them to `.psm1` without redesigning the shared state (see architecture).
-6. **Keep the pure modules pure.** `Config.ps1`, `Schedule.ps1` and `Random.ps1` must load without WinForms, Win32 or the tray, so the tests can dot-source them directly. Pass time and config in as parameters (e.g. `Test-ScheduleActive -Ini -Now`) rather than reading globals.
+6. **Keep the pure modules pure.** `Config.ps1`, `Schedule.ps1`, `Random.ps1` and `ActionScript.ps1` must load without WinForms, Win32 or the tray, so the tests can dot-source them directly. Pass time and config in as parameters (e.g. `Test-ScheduleActive -Ini -Now`) rather than reading globals.
 7. **New settings go in three places:** `Import-Settings` (with a default and clamping), `$DefaultConfigText`, and `docs/configuration.md`. Add the key to the user's `config.ini` only if they want it there.
 8. **Log only on state change** (`Set-State`) to keep the log small. Errors in the main loop are logged, then the loop waits 30 seconds.
 9. **Match the existing style:** `Verb-Noun` function names, `# ===` section banners, `param()` blocks, short comments explaining *why*.
 10. **Keep the trackers current:** tick `docs/ideas.md` items you finish and remove fixed entries from `docs/problems.md`.
-11. **Back up before big edits** while there's no git repo: copy the touched files somewhere outside the project, or suggest `git init` to the user.
+11. **Start big edits from a clean `git status`**, so the user can review or revert the diff. Don't commit or push unless asked.
+12. **New action commands go in four places:** `ConvertFrom-ActionLine` (parse and validate), `Invoke-ActionStep` (run, and skip real input in dry run), the reference comments in `actions.txt`, and `docs/actions.md`, plus tests in `tests/ActionScript.Tests.ps1`.

@@ -110,6 +110,23 @@ corner_delay_max_ms=2200
 # Which corner to click first: top_first, bottom_first or random (picked each cycle)
 order=top_first
 
+[actions]
+# Your own steps instead of the corner clicks above, e.g. file=actions.txt
+# (relative to this config file). Leave empty for the corner clicks.
+# See actions.txt for the commands: move, click, key, scroll, wait, focus.
+file=
+# After a "focus" step, switch back to the window you had in front
+restore_focus=true
+
+[break]
+# Now and then take a longer break, like a person getting coffee
+enabled=false
+# Chance of a break after each cycle, in percent (0-100)
+chance_percent=5
+# Break length in minutes
+min_minutes=5
+max_minutes=20
+
 [schedule]
 # Note: these three shifts overlap and cover all 24 hours.
 # Disable a shift or narrow the times to pause outside work hours.
@@ -172,6 +189,14 @@ function Import-Settings {
     $script:CornerDelayMax  = Get-IniInt  $Ini "click.corner_delay_max_ms" 2200
     $script:ClickOrder      = (Get-IniValue $Ini "click.order" "top_first").ToLower()
 
+    $script:ActionsFile     = Get-IniValue $Ini "actions.file" ""
+    $script:RestoreFocus    = Get-IniBool  $Ini "actions.restore_focus" $true
+
+    $script:BreakEnabled    = Get-IniBool  $Ini "break.enabled" $false
+    $script:BreakChance     = Get-IniInt   $Ini "break.chance_percent" 5
+    $script:BreakMinMinutes = Get-IniInt   $Ini "break.min_minutes" 5
+    $script:BreakMaxMinutes = Get-IniInt   $Ini "break.max_minutes" 20
+
     $script:IsDryRun        = [bool]$DryRun -or (Get-IniBool $Ini "debug.dry_run" $false)
     $script:ShowOverlay     = [bool]$Overlay -or (Get-IniBool $Ini "debug.overlay" $false)
 
@@ -183,4 +208,22 @@ function Import-Settings {
     if ($CornerDelayMin -lt 50) { $script:CornerDelayMin = 50 }
     if ($CornerDelayMax -lt $CornerDelayMin) { $script:CornerDelayMax = $CornerDelayMin }
     if (@("top_first", "bottom_first", "random") -notcontains $ClickOrder) { $script:ClickOrder = "top_first" }
+    if ($BreakChance -lt 0) { $script:BreakChance = 0 }
+    if ($BreakChance -gt 100) { $script:BreakChance = 100 }
+    if ($BreakMinMinutes -lt 1) { $script:BreakMinMinutes = 1 }
+    if ($BreakMaxMinutes -lt $BreakMinMinutes) { $script:BreakMaxMinutes = $BreakMinMinutes }
+
+    # The actions file is relative to the config file's folder
+    $script:ActionsPath = ""
+
+    if ($ActionsFile) {
+        if ([System.IO.Path]::IsPathRooted($ActionsFile)) {
+            $script:ActionsPath = $ActionsFile
+        }
+        else {
+            $configDir = Split-Path -Parent $Path
+            if (-not $configDir) { $configDir = "." }
+            $script:ActionsPath = Join-Path $configDir $ActionsFile
+        }
+    }
 }

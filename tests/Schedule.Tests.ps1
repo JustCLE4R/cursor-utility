@@ -89,6 +89,48 @@ Describe "Test-ShiftActive" {
     }
 }
 
+Describe "Get-ActiveShift" {
+
+    It "names the matching shift with its times" {
+        $ini = New-ScheduleIni @{ pagi = @("09:00", "17:00") }
+
+        $shift = Get-ActiveShift $ini (Get-TestTime "10:00")
+
+        $shift.Name | Should Be "pagi"
+        $shift.Start | Should Be "09:00"
+        $shift.End | Should Be "17:00"
+    }
+
+    It "returns the first match when shifts overlap" {
+        $shift = Get-ActiveShift @{} (Get-TestTime "08:15")
+
+        $shift.Name | Should Be "subuh"
+    }
+
+    It "returns null outside every shift" {
+        $ini = New-ScheduleIni @{ pagi = @("09:00", "17:00") }
+
+        Get-ActiveShift $ini (Get-TestTime "20:00") | Should BeNullOrEmpty
+    }
+}
+
+Describe "Format-Duration" {
+
+    It "formats seconds, minutes and hours" {
+        Format-Duration 0 | Should Be "0s"
+        Format-Duration 42 | Should Be "42s"
+        Format-Duration 60 | Should Be "1m 00s"
+        Format-Duration 750 | Should Be "12m 30s"
+        Format-Duration 3600 | Should Be "1h 00m"
+        Format-Duration 4000 | Should Be "1h 06m"
+    }
+
+    It "rounds part seconds up and never goes negative" {
+        Format-Duration 41.2 | Should Be "42s"
+        Format-Duration -5 | Should Be "0s"
+    }
+}
+
 Describe "Test-ScheduleActive" {
 
     It "is always active with the default shifts" {

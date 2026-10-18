@@ -14,6 +14,9 @@ Invoke-Pester .\tests
 | `tests/Config.Tests.ps1` | `Read-Ini`, `Get-IniBool`, `Get-IniInt`, `New-DefaultConfig`, `Import-Settings` (defaults, clamping, `[debug]`, switches overriding the config) |
 | `tests/Schedule.Tests.ps1` | `Convert-ToMinutes`, `Test-ShiftActive` (normal and cross-midnight, inclusive ends), `Test-ScheduleActive` with a fixed `-Now` |
 | `tests/Random.Tests.ps1` | `Get-NaturalRandom`: bounds, integer results, centring, bell shape |
+| `tests/ActionScript.Tests.ps1` | `Resolve-ActionCoordinate`, `ConvertTo-KeyCombo`, every command and error in `ConvertFrom-ActionLine`, `Read-ActionScript` (comments, line numbers, errors, the shipped `actions.txt`), `Get-CornerSteps` |
+
+`Config.Tests.ps1` also covers `[actions]` (path resolution) and `[break]` (clamping). `Schedule.Tests.ps1` also covers `Get-ActiveShift` and `Format-Duration`.
 
 ### Writing tests
 
@@ -25,7 +28,7 @@ Invoke-Pester .\tests
 
 ## Smoke tests (real app)
 
-These run the real script but never move the mouse. Use a temporary config so the user's `config.ini` isn't touched.
+These run the real script but never move the mouse. Use a temporary config so the user's `config.ini` isn't touched. Dry runs don't need the single-instance mutex, so they work while the user's copy is running.
 
 ```powershell
 $cfg = Join-Path $env:TEMP "cu-smoke.ini"
@@ -50,6 +53,23 @@ Stop-Process -Id $p.Id -Force
 Moving the mouse during smoke test 1 cancels the cycle ("User moved the mouse. Cycle cancelled.").
 
 **Overlay:** the markers can't be checked automatically. Ask the user to watch the top-left and bottom-left corners during smoke test 1.
+
+**Actions file:** point a temporary config at a temporary actions file that uses every command:
+
+```powershell
+$dir = Join-Path $env:TEMP "cu-actions"; New-Item -ItemType Directory -Force $dir | Out-Null
+Set-Content "$dir\c.ini" "[actions]`nfile=a.txt"
+Set-Content "$dir\a.txt" "move center center`nclick right`nkey ctrl+shift+f15`nscroll down 2`nwait 50-80`nfocus code"
+.\cursor-utility.ps1 -Config "$dir\c.ini" -RunOnce -DryRun
+```
+
+Expect one log line per click, key, scroll and focus, then `Run once: done`. A broken file should exit with code 1 and log `a.txt line N: ...`.
+
+**Single instance:** keep a dry-run main loop running (smoke test 2), then start a normal copy whose config has every shift disabled, so it can't click even if the check fails. That copy should log "Another copy is already running. Exiting." and quit after about 4 seconds.
+
+**Tray icons:** render `Get-StateIcon` for every state at a few progress values into a scaled-up PNG and look at it. A dot-sourced `Random.ps1`, `Input.ps1` and `Tray.ps1` are enough, so the full app isn't needed.
+
+**Can't be tested safely by an agent:** real window focusing, real key presses, and display changes. Ask the user to check these.
 
 ## Checklist before handing back
 

@@ -1,17 +1,18 @@
 <#
 .SYNOPSIS
-    Cursor Utility: clicks the screen corners while you are idle, controlled from a tray icon.
+    Cursor Utility: keeps the session active while you are idle, controlled from a tray icon.
+    Clicks the screen corners, or runs your own steps from an actions file.
 
 .PARAMETER Config
     Path to the config file. Default: config.ini next to this script.
     A commented default config is created if the file does not exist.
 
 .PARAMETER DryRun
-    Log what would happen without moving the cursor or clicking.
-    Same as [debug] dry_run=true.
+    Log what would happen without moving the cursor, clicking, pressing keys
+    or switching windows. Same as [debug] dry_run=true.
 
 .PARAMETER RunOnce
-    Run one cycle immediately, ignoring the schedule and idle time, then exit.
+    Run one cycle immediately, ignoring the schedule, idle time and breaks, then exit.
 
 .PARAMETER Overlay
     Show red markers where each click will land. Same as [debug] overlay=true.
@@ -49,6 +50,7 @@ Add-Type -AssemblyName System.Drawing
 . (Join-Path $ModuleDir "Config.ps1")
 . (Join-Path $ModuleDir "Random.ps1")
 . (Join-Path $ModuleDir "Schedule.ps1")
+. (Join-Path $ModuleDir "ActionScript.ps1")
 . (Join-Path $ModuleDir "Input.ps1")
 . (Join-Path $ModuleDir "Tray.ps1")
 . (Join-Path $ModuleDir "Overlay.ps1")
@@ -72,31 +74,142 @@ if (-not $Enabled) {
     exit 0
 }
 
-Initialize-Tray
-Update-Tray "starting"
+# Single instance: two copies would fight over the mouse. A dry run or
+# -RunOnce may still start next to a running copy, for testing.
+$InstanceMutex = New-Object System.Threading.Mutex($false, "Local\CursorUtility")
+$HasMutex = $false
 
-Write-Log "========================================"
-Write-Log "Cursor Utility started"
-if ($ConfigCreated) {
-    Write-Log "Config not found. Created a default one: $ConfigFile"
+try {
+    $HasMutex = $InstanceMutex.WaitOne(0)
 }
-if ($ConfigPath) {
-    Write-Log "Config: $ConfigFile"
+catch [System.Threading.AbandonedMutexException] {
+    # The previous copy crashed without releasing it; it's ours now
+    $HasMutex = $true
 }
-if ($IsDryRun) {
-    Write-Log "Mode: dry run (no cursor movement or clicks)"
+
+if (-not $HasMutex -and -not $RunOnce -and -not $IsDryRun) {
+    Write-Log "Another copy is already running. Exiting."
+    Show-AlreadyRunningNotice
+    exit 0
 }
-Write-Log "Interval: $MinInterval-$MaxInterval seconds"
-Write-Log "Idle before start: $IdleSeconds seconds"
-Write-Log "Corner delay: $CornerDelayMin-$CornerDelayMax ms"
-Write-Log "Click order: $ClickOrder"
-Write-Log "========================================"
+
+# Shared state shown in the tray (see docs/architecture.md)
+$script:NextRunAt    = $null
+$script:NextRunTotal = 0
+$script:BreakUntil   = $null
+$script:BreakTotal   = 0
+$script:ShiftText    = ""
+$script:ActionsText  = ""
+$script:LastDisplay  = Get-DisplaySignature
+$script:ExitCode     = 0
+$script:Stats        = @{ Day = (Get-Date).Date; Done = 0; Cancelled = 0; LastTime = $null; LastResult = "" }
 
 # ============================================================
-# Main loop
+# Helpers
 # ============================================================
 
-$script:NextRunAt = $null
+function Get-ActionsDescription {
+
+    if ($ActionsPath) {
+        $name = Split-Path -Leaf $ActionsPath
+        if ($ActionError) {
+            return "$name has an error"
+        }
+        return "$name ($(@($ActionSteps).Count) steps)"
+    }
+
+    return "corners, $($ClickOrder -replace '_', ' ')"
+}
+
+function Get-BreakDescription {
+
+    if (-not $BreakEnabled) {
+        return "off"
+    }
+
+    return "$BreakChance% chance after each cycle, $BreakMinMinutes-$BreakMaxMinutes minutes"
+}
+
+# The steps for the next cycle: the actions file, or the corner clicks.
+# Emits the steps one by one; call it as @(Get-CycleSteps).
+function Get-CycleSteps {
+
+    if ($ActionsPath) {
+        return $ActionSteps
+    }
+
+    $order = $ClickOrder
+
+    if ($order -eq "random") {
+        $order = if ($Random.Next(2) -eq 0) { "bottom_first" } else { "top_first" }
+    }
+
+    $steps = Get-CornerSteps $order $CornerDelayMin $CornerDelayMax
+    return $steps
+}
+
+function Update-Stats {
+    param(
+        [string]$Result
+    )
+
+    $today = (Get-Date).Date
+
+    if ($Stats.Day -ne $today) {
+        $script:Stats = @{ Day = $today; Done = 0; Cancelled = 0; LastTime = $null; LastResult = "" }
+    }
+
+    if ($Result -eq "done") {
+        $Stats.Done++
+    }
+    else {
+        $Stats.Cancelled++
+    }
+
+    $Stats.LastTime = Get-Date
+    $Stats.LastResult = $Result
+}
+
+# Now and then, after a finished cycle, start a longer break
+function Start-BreakMaybe {
+
+    if (-not $BreakEnabled -or $BreakChance -le 0) {
+        return
+    }
+
+    if ($Random.NextDouble() * 100 -ge $BreakChance) {
+        return
+    }
+
+    $minutes = Get-NaturalRandom $BreakMinMinutes $BreakMaxMinutes
+    $script:BreakUntil = (Get-Date).AddMinutes($minutes)
+    $script:BreakTotal = $minutes * 60
+
+    $unit = if ($minutes -eq 1) { "minute" } else { "minutes" }
+    Write-Log "Taking a break for $minutes $unit (until $($BreakUntil.ToString('HH:mm')))."
+}
+
+function Invoke-Cycle {
+
+    $steps = @(Get-CycleSteps)
+
+    Update-Tray "clicking" "Running a cycle ($($steps.Count) steps)"
+    Invoke-ActionCycle $steps
+    Update-Stats $LastCycleResult
+}
+
+# Logs resolution, layout and monitor changes. Coordinates are worked out
+# again at the start of every cycle, so nothing else needs to change.
+function Update-Display {
+
+    $display = Get-DisplaySignature
+
+    if ($display -ne $LastDisplay) {
+        Write-Log "Display changed: $LastDisplay -> $display"
+        $script:LastDisplay = $display
+    }
+}
+
 $state = ""
 
 function Set-State {
@@ -112,11 +225,56 @@ function Set-State {
     }
 }
 
+# ============================================================
+# Start
+# ============================================================
+
+Write-Log "========================================"
+Write-Log "Cursor Utility started"
+if ($ConfigCreated) {
+    Write-Log "Config not found. Created a default one: $ConfigFile"
+}
+if ($ConfigPath) {
+    Write-Log "Config: $ConfigFile"
+}
+if ($IsDryRun) {
+    Write-Log "Mode: dry run (no cursor movement, clicks, keys or window switching)"
+}
+if (-not $HasMutex) {
+    Write-Log "Another copy is running; continuing because this is a dry run or a single cycle."
+}
+
+Sync-ActionScript
+$script:ActionsText = "Actions: $(Get-ActionsDescription)"
+
+Initialize-Tray
+Update-Tray "starting" "Starting"
+
+Write-Log "Interval: $MinInterval-$MaxInterval seconds"
+Write-Log "Idle before start: $IdleSeconds seconds"
+Write-Log "Actions: $(Get-ActionsDescription)"
+if (-not $ActionsPath) {
+    Write-Log "Corner delay: $CornerDelayMin-$CornerDelayMax ms"
+}
+Write-Log "Breaks: $(Get-BreakDescription)"
+Write-Log "Display: $LastDisplay"
+Write-Log "========================================"
+
+# ============================================================
+# Main loop
+# ============================================================
+
 try {
     if ($RunOnce) {
-        Write-Log "Run once: one cycle now, ignoring schedule and idle time."
-        Update-Tray "clicking"
-        Invoke-CornerClicks
+        if ($ActionsPath -and $ActionError) {
+            Write-Log "Run once: not running, the actions file has an error."
+            $script:ExitCode = 1
+        }
+        else {
+            Write-Log "Run once: one cycle now, ignoring schedule, idle time and breaks."
+            Invoke-Cycle
+            Write-Log "Run once: $LastCycleResult"
+        }
     }
 
     while (-not $RunOnce -and -not $ExitRequested) {
@@ -126,24 +284,60 @@ try {
             Wait-Responsive 1000
 
             Import-Settings $ConfigFile
+            Sync-ActionScript
             Update-UserActivity
+            Update-Display
+
+            $shift = Get-ActiveShift $Ini
+
+            if ($shift) {
+                $script:ShiftText = "Shift: $($shift.Name), $($shift.Start)-$($shift.End)"
+            }
+            else {
+                $script:ShiftText = "Shift: none active now"
+            }
+
+            $script:ActionsText = "Actions: $(Get-ActionsDescription)"
 
             if (-not $Enabled) {
-                Write-Log "Disabled in config.ini. Exiting."
+                Write-Log "Disabled in $(Split-Path -Leaf $ConfigFile). Exiting."
                 break
             }
 
             if ($Paused) {
                 Set-State "paused" "Paused."
-                Update-Tray
+                Update-Tray "paused" "Off. Click the icon to turn on."
                 continue
             }
 
-            if (-not (Test-ScheduleActive $Ini)) {
+            if ($ActionsPath -and $ActionError) {
+                Set-State "actions" "Waiting for the actions file to be fixed."
+                $script:NextRunAt = $null
+                Update-Tray "error" "Actions file error: $ActionError"
+                continue
+            }
+
+            if (-not $shift) {
                 Set-State "schedule" "Outside active schedule."
                 $script:NextRunAt = $null
-                Update-Tray "outside schedule"
+                Update-Tray "schedule" "Outside schedule"
                 continue
+            }
+
+            if ($BreakUntil) {
+
+                $left = ($BreakUntil - (Get-Date)).TotalSeconds
+
+                if ($left -gt 0) {
+                    Set-State "break" "On a break."
+                    $script:NextRunAt = $null
+                    $progress = 1 - ($left / [Math]::Max(1, $BreakTotal))
+                    Update-Tray "break" "On a break, back in $(Format-Duration $left)" $progress "Break ends at $($BreakUntil.ToString('HH:mm'))"
+                    continue
+                }
+
+                $script:BreakUntil = $null
+                Write-Log "Break over."
             }
 
             $idle = Get-UserIdleSeconds
@@ -151,32 +345,39 @@ try {
             if ($idle -lt $IdleSeconds) {
                 Set-State "user" "User active. Waiting for $IdleSeconds seconds of idle."
                 $script:NextRunAt = $null
-                Update-Tray "you are active (idle ${idle}s/${IdleSeconds}s)"
+                $progress = $idle / [Math]::Max(1, $IdleSeconds)
+                Update-Tray "user" "You are active (idle $(Format-Duration $idle) of $(Format-Duration $IdleSeconds))" $progress
                 continue
             }
 
             if ($null -eq $NextRunAt) {
                 $delay = Get-NaturalRandom $MinInterval $MaxInterval
                 $script:NextRunAt = (Get-Date).AddSeconds($delay)
+                $script:NextRunTotal = $delay
                 Set-State "idle" "User idle. Running."
                 Write-Log "Next cycle in $delay seconds."
             }
 
-            $remaining = [int]($NextRunAt - (Get-Date)).TotalSeconds
+            $remaining = ($NextRunAt - (Get-Date)).TotalSeconds
 
             if ($remaining -gt 0) {
-                Update-Tray "next click in ${remaining}s"
+                $progress = 1 - ($remaining / [Math]::Max(1, $NextRunTotal))
+                Update-Tray "idle" "Next cycle in $(Format-Duration $remaining)" $progress "Next cycle at $($NextRunAt.ToString('HH:mm:ss'))"
                 continue
             }
 
-            Update-Tray "clicking"
-            Invoke-CornerClicks
+            Invoke-Cycle
             $script:NextRunAt = $null
+
+            if ($LastCycleResult -eq "done") {
+                Start-BreakMaybe
+            }
         }
         catch {
 
             Write-Log "ERROR: $($_.Exception.Message)"
 
+            Update-Tray "error" "Error, retrying in 30s: $($_.Exception.Message)"
             Wait-Responsive 30000
         }
     }
@@ -184,4 +385,11 @@ try {
 finally {
     Write-Log "Cursor Utility stopped."
     Remove-Tray
+
+    if ($HasMutex) {
+        $InstanceMutex.ReleaseMutex()
+    }
+    $InstanceMutex.Dispose()
 }
+
+exit $ExitCode
