@@ -5,8 +5,8 @@ The actions file replaces the built-in corner clicks with your own steps. Turn i
 ```ini
 [actions]
 file=actions.txt
-restore_focus=true
-browsers=msedge, chrome, brave, vivaldi, opera, firefox
+restore_focus=false
+browsers=msedge, chrome, brave, opera, firefox, vivaldi
 ```
 
 - The path is relative to the config file's folder. An absolute path works too.

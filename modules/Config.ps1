@@ -91,6 +91,10 @@ $DefaultConfigText = @"
 [general]
 enabled=true
 log_enabled=true
+# Exit when the shift you started in is over, plus stop_extra_minutes
+# (restarts by the watchdog keep the original start)
+stop_after_shift=true
+stop_extra_minutes=60
 
 [activity]
 # Seconds between each corner-click cycle
@@ -206,23 +210,25 @@ function Import-Settings {
 
     $script:Enabled         = Get-IniBool $Ini "general.enabled" $true
     $script:LogEnabled      = Get-IniBool $Ini "general.log_enabled" $true
+    $script:StopAfterShift  = Get-IniBool $Ini "general.stop_after_shift" $true
+    $script:StopExtraMinutes = Get-IniInt $Ini "general.stop_extra_minutes" 60
 
-    $script:MinInterval     = Get-IniInt  $Ini "activity.min_interval_seconds" 60
-    $script:MaxInterval     = Get-IniInt  $Ini "activity.max_interval_seconds" 120
+    $script:MinInterval     = Get-IniInt  $Ini "activity.min_interval_seconds" 15
+    $script:MaxInterval     = Get-IniInt  $Ini "activity.max_interval_seconds" 60
     $script:IdleSeconds     = Get-IniInt  $Ini "activity.idle_seconds" 120
     $script:ReturnAfterMove = Get-IniBool $Ini "activity.return_after_move" $true
     $script:SmoothMove      = Get-IniBool $Ini "activity.smooth_move" $true
 
     $script:CornerDelayMin  = Get-IniInt  $Ini "click.corner_delay_min_ms" 700
     $script:CornerDelayMax  = Get-IniInt  $Ini "click.corner_delay_max_ms" 2200
-    $script:ClickOrder      = (Get-IniValue $Ini "click.order" "top_first").ToLower()
+    $script:ClickOrder      = (Get-IniValue $Ini "click.order" "bottom_first").ToLower()
 
     $script:ActionsFile     = Get-IniValue $Ini "actions.file" ""
-    $script:RestoreFocus    = Get-IniBool  $Ini "actions.restore_focus" $true
+    $script:RestoreFocus    = Get-IniBool  $Ini "actions.restore_focus" $false
     $script:Browsers        = ConvertTo-ProcessList (Get-IniValue $Ini "actions.browsers" $DefaultBrowsers)
 
-    $script:BreakEnabled    = Get-IniBool  $Ini "break.enabled" $false
-    $script:BreakChance     = Get-IniInt   $Ini "break.chance_percent" 5
+    $script:BreakEnabled    = Get-IniBool  $Ini "break.enabled" $true
+    $script:BreakChance     = Get-IniInt   $Ini "break.chance_percent" 1
     $script:BreakMinMinutes = Get-IniInt   $Ini "break.min_minutes" 5
     $script:BreakMaxMinutes = Get-IniInt   $Ini "break.max_minutes" 20
 
@@ -235,12 +241,13 @@ function Import-Settings {
 
     # Validation
 
+    if ($StopExtraMinutes -lt 0) { $script:StopExtraMinutes = 0 }
     if ($MinInterval -lt 1) { $script:MinInterval = 1 }
     if ($MaxInterval -lt $MinInterval) { $script:MaxInterval = $MinInterval }
     if ($IdleSeconds -lt 0) { $script:IdleSeconds = 0 }
     if ($CornerDelayMin -lt 50) { $script:CornerDelayMin = 50 }
     if ($CornerDelayMax -lt $CornerDelayMin) { $script:CornerDelayMax = $CornerDelayMin }
-    if (@("top_first", "bottom_first", "random") -notcontains $ClickOrder) { $script:ClickOrder = "top_first" }
+    if (@("top_first", "bottom_first", "random") -notcontains $ClickOrder) { $script:ClickOrder = "bottom_first" }
     if ($BreakChance -lt 0) { $script:BreakChance = 0 }
     if ($BreakChance -gt 100) { $script:BreakChance = 100 }
     if ($BreakMinMinutes -lt 1) { $script:BreakMinMinutes = 1 }

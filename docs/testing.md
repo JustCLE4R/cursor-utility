@@ -4,8 +4,11 @@
 
 ```powershell
 Invoke-Pester .\tests
+.\test.bat                          # same, but works with the execution policy set to Restricted
+.\test.bat -TestName Get-ShiftWindow  # extra arguments go to Invoke-Pester
 ```
 
+- **`test.bat`:** starts PowerShell with `-ExecutionPolicy Bypass` for that process only, and exits with the number of failed tests (0 = all passed).
 - **Pester version:** 3.4.0 (built into Windows), so use v3 syntax: `$x | Should Be 5`, `{ ... } | Should Throw`. Pester 5 syntax (`Should -Be`, top-level `BeforeAll`) won't run. If Pester 5 is ever installed, the tests must be migrated.
 - **Speed:** about 2 seconds. No network access, admin rights or display needed.
 

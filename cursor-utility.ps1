@@ -21,6 +21,10 @@
     Set by watchdog.ps1: a file that gets the current time every 10 s or so,
     so the watchdog can tell the script is still responding.
 
+.PARAMETER StartedAt
+    Set by watchdog.ps1: when it first started the script (yyyy-MM-ddTHH:mm:ss),
+    so a restart keeps the shift it started in for [general] stop_after_shift. Default: now.
+
 .EXAMPLE
     .\cursor-utility.ps1 -RunOnce -DryRun -Overlay
 #>
@@ -30,7 +34,8 @@ param(
     [switch]$DryRun,
     [switch]$RunOnce,
     [switch]$Overlay,
-    [string]$HeartbeatFile
+    [string]$HeartbeatFile,
+    [string]$StartedAt
 )
 
 $ErrorActionPreference = "Stop"
@@ -109,6 +114,14 @@ $script:ActionsText  = ""
 $script:LastDisplay  = Get-DisplaySignature
 $script:ExitCode     = 0
 $script:Stats        = @{ Day = (Get-Date).Date; Done = 0; Cancelled = 0; LastTime = $null; LastResult = "" }
+
+# stop_after_shift uses the shift of this time. Under the watchdog it's the first start, so a restart keeps it.
+$script:StartTime = Get-Date
+$parsedStart = [datetime]::MinValue
+
+if ($StartedAt -and [datetime]::TryParseExact($StartedAt, "s", [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsedStart)) {
+    $script:StartTime = $parsedStart
+}
 
 # ============================================================
 # Helpers
@@ -263,6 +276,15 @@ if (-not $ActionsPath) {
     Write-Log "Corner delay: $CornerDelayMin-$CornerDelayMax ms"
 }
 Write-Log "Breaks: $(Get-BreakDescription)"
+if ($StopAfterShift) {
+    $startShift = Get-ShiftWindow $Ini $StartTime
+    if ($startShift) {
+        Write-Log "Stops at $($startShift.End.AddMinutes($StopExtraMinutes).ToString('yyyy-MM-dd HH:mm')): shift $($startShift.Name) ends $($startShift.End.ToString('HH:mm')), plus $StopExtraMinutes min"
+    }
+    else {
+        Write-Log "Stop after shift: no shift is enabled, so no stop time."
+    }
+}
 Write-Log "Display: $LastDisplay"
 Write-Log "========================================"
 
@@ -295,6 +317,10 @@ try {
             Update-Display
 
             $shift = Get-ActiveShift $Ini
+            $stopAt = $null
+            if ($StopAfterShift) {
+                $stopAt = Get-StopTime $Ini $StartTime $StopExtraMinutes
+            }
 
             if ($shift) {
                 $script:ShiftText = "Shift: $($shift.Name), $($shift.Start)-$($shift.End)"
@@ -303,10 +329,20 @@ try {
                 $script:ShiftText = "Shift: none active now"
             }
 
+            if ($stopAt) {
+                $script:ShiftText += ", stops at $($stopAt.ToString('HH:mm'))"
+            }
+
             $script:ActionsText = "Actions: $(Get-ActionsDescription)"
 
             if (-not $Enabled) {
                 Write-Log "Disabled in $(Split-Path -Leaf $ConfigFile). Exiting."
+                break
+            }
+
+            # A normal exit (code 0), so the watchdog stops too
+            if ($stopAt -and (Get-Date) -ge $stopAt) {
+                Write-Log "Shift over plus $StopExtraMinutes min (stop_after_shift). Exiting."
                 break
             }
 

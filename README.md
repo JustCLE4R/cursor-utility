@@ -1,6 +1,6 @@
 # Cursor Utility
 
-A small Windows tray app that keeps your session looking active while you're away. Once you've been idle for a while, it moves the mouse to the top-left corner of the screen and clicks, then to the bottom-left corner and clicks, then moves the mouse back to where it was. Delays and movement are randomised so the activity looks natural.
+A small Windows tray app that keeps your session looking active while you're away. Once you've been idle for a while, it moves the mouse to the bottom-left corner of the screen and clicks, then to the top-left corner and clicks, then moves the mouse back to where it was. Delays and movement are randomised so the activity looks natural.
 
 **Your own steps:** instead of the corner clicks, it can run steps from an **actions file**:
 - move or click anywhere, with left, right, middle or double clicks
@@ -69,8 +69,8 @@ Edit **`config.ini`**. Changes apply within a second, with no restart needed.
 ```ini
 [activity]
 # Time between cycles
-min_interval_seconds=60
-max_interval_seconds=120
+min_interval_seconds=15
+max_interval_seconds=60
 # How long you must be idle first
 idle_seconds=120
 # Put the cursor back afterwards
@@ -83,7 +83,7 @@ smooth_move=true
 corner_delay_min_ms=700
 corner_delay_max_ms=2200
 # Which corner first: top_first, bottom_first or random
-order=top_first
+order=bottom_first
 
 [actions]
 # Your own steps instead of the corner clicks (empty = corners)
@@ -92,7 +92,7 @@ file=actions.txt
 [break]
 # Now and then take a longer break
 enabled=true
-chance_percent=5
+chance_percent=1
 min_minutes=5
 max_minutes=20
 
@@ -105,7 +105,7 @@ pagi_end=16:30
 
 Comments must be on their own line, starting with `#` or `;`. Text after a value counts as part of the value.
 
-By default the three shifts (subuh, pagi, malam) together cover all 24 hours. Turn shifts off or narrow their times to pause outside working hours. To stop it entirely, set `enabled=false` under `[general]`.
+By default the three shifts (subuh, pagi, malam) together cover all 24 hours. Turn shifts off or narrow their times to pause outside working hours. To stop it entirely, set `enabled=false` under `[general]`. It exits by itself 1 hour after the shift you started it in is over (started at 08:15, that's pagi, so it stops at 17:30). Change the extra time with `stop_extra_minutes` under `[general]`, or set `stop_after_shift=false` to keep it running.
 
 If `config.ini` is missing, a commented default is created on the next start.
 
@@ -218,7 +218,7 @@ logs/                 Runtime log
 ## Development
 
 ```powershell
-Invoke-Pester .\tests                               # unit tests (Pester 3.4, built into Windows)
+.\test.bat                                          # unit tests (Pester 3.4, built into Windows)
 .\cursor-utility.ps1 -RunOnce -DryRun -Overlay      # safe manual check
 ```
 

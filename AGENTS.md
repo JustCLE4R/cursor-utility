@@ -4,8 +4,8 @@ Entry point for AI coding agents working on Cursor Utility. Read this first, the
 
 ## What this is
 
-A Windows tray app in PowerShell. While the user is idle and the time is inside an active shift, it runs a cycle every 60–120 seconds, with some randomness:
-- **By default:** move to the top-left corner and click, then the bottom-left corner, then move back.
+A Windows tray app in PowerShell. While the user is idle and the time is inside an active shift, it runs a cycle every 15–60 seconds, with some randomness:
+- **By default:** move to the bottom-left corner and click, then the top-left corner, then move back.
 - **With an actions file:** the user's own steps instead: `move`, `click`, `key`, `scroll`, `wait`, `focus`.
 
 It also has:
@@ -26,6 +26,7 @@ Settings live in `config.ini`, and the steps in `actions.txt`. Both are reloaded
 ```powershell
 # Tests (Pester 3.4 syntax: `Should Be`, not `Should -Be`)
 Invoke-Pester .\tests
+.\test.bat                    # same, with -ExecutionPolicy Bypass; arguments go to Invoke-Pester
 
 # Safe manual check: one cycle, no real mouse movement, red markers on screen
 .\cursor-utility.ps1 -RunOnce -DryRun -Overlay
@@ -61,6 +62,7 @@ modules/
 tests/               Pester tests for the pure modules
 config.ini           User settings (live-reloaded; git-ignored)
 actions.txt          Example actions file with the command reference (live-reloaded)
+test.bat             Runs the Pester tests with -ExecutionPolicy Bypass
 run.bat, run.vbs     Hidden launcher (wscript -> powershell watchdog.ps1 -> cursor-utility.ps1)
 docs/                Detailed docs (see below)
   actions.md         Actions file format

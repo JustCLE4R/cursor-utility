@@ -40,7 +40,8 @@ Everything lives in the entry script's scope. Write it as `$script:X = ...` insi
 | `$DryRun`, `$RunOnce`, `$Overlay` | entry (params) | raw command-line switches |
 | `$HasMutex`, `$InstanceMutex` | entry | single-instance lock |
 | `$Ini` | Config | parsed config hashtable, keys `section.key` |
-| `$Enabled`, `$LogEnabled` | Config | `[general]` |
+| `$Enabled`, `$LogEnabled`, `$StopAfterShift`, `$StopExtraMinutes` | Config | `[general]` |
+| `$StartTime` | entry | the time whose shift sets the stop time (`Get-StopTime`): `-StartedAt` from the watchdog, or this process's start |
 | `$MinInterval`, `$MaxInterval`, `$IdleSeconds`, `$ReturnAfterMove`, `$SmoothMove` | Config | `[activity]`, already validated |
 | `$CornerDelayMin`, `$CornerDelayMax`, `$ClickOrder` | Config | `[click]` |
 | `$ActionsFile`, `$ActionsPath`, `$RestoreFocus`, `$Browsers` | Config | `[actions]`; `$ActionsPath` is resolved against the config folder, `""` = corners; `$Browsers` is a list of process names for `focus tab` |
@@ -69,6 +70,7 @@ The loop ticks once a second, using `Wait-Responsive 1000` so the tray stays res
 reload config -> reload actions file if changed -> update idle tracking
 -> log display changes -> work out the active shift
   disabled in config?        -> log, exit
+  start's shift over + extra? -> log, exit (code 0, so the watchdog stops too)
   paused from tray?          -> state "paused"
   actions file has an error? -> state "actions" (tray: error), clear NextRunAt
   outside every shift?       -> state "schedule", clear NextRunAt

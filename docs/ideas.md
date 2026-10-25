@@ -78,7 +78,7 @@ Everything that could be added to Cursor Utility, grouped by area.
 - [ ] **Any number of shifts** instead of the fixed subuh, pagi and malam
 - [ ] **Overlap warning** when shifts overlap
 - [ ] **Rotating shifts:** week A morning, week B night
-- [ ] **Timed auto-stop:** "run for the next 3 hours, then stop"
+- [x] **Timed auto-stop:** "run for the next 3 hours, then stop" (`[general] stop_after_shift`: exits after the shift it was started in, plus `stop_extra_minutes`)
 - [ ] **Calendar sync:** pause during Outlook/Google Calendar events
 
 ## Keep-awake

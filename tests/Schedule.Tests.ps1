@@ -114,6 +114,64 @@ Describe "Get-ActiveShift" {
     }
 }
 
+Describe "Get-ShiftWindow" {
+
+    # The default shifts: they overlap and cover all 24 hours
+    $defaults = @{}
+
+    It "picks the shift that started most recently when shifts overlap" {
+        $window = Get-ShiftWindow $defaults (Get-TestTime "08:15")
+
+        $window.Name | Should Be "pagi"
+        $window.Start | Should Be (Get-TestTime "08:00")
+        $window.End | Should Be (Get-TestTime "16:30")
+    }
+
+    It "gives a shift that crosses midnight its end on the next day" {
+        $window = Get-ShiftWindow $defaults (Get-TestTime "16:10")
+
+        $window.Name | Should Be "malam"
+        $window.End | Should Be (Get-TestTime "00:30").AddDays(1)
+    }
+
+    It "finds a midnight shift that started the day before" {
+        $ini = New-ScheduleIni @{ malam = @("16:00", "00:30") }
+        $window = Get-ShiftWindow $ini (Get-TestTime "00:20")
+
+        $window.Name | Should Be "malam"
+        $window.Start | Should Be (Get-TestTime "16:00").AddDays(-1)
+        $window.End | Should Be (Get-TestTime "00:30")
+    }
+
+    It "counts the end minute as part of the shift" {
+        $ini = New-ScheduleIni @{ pagi = @("08:00", "16:30") }
+
+        (Get-ShiftWindow $ini (Get-TestTime "16:30").AddSeconds(59)).Start | Should Be (Get-TestTime "08:00")
+    }
+
+    It "uses the next shift when started outside every shift" {
+        $ini = New-ScheduleIni @{ pagi = @("08:00", "16:30") }
+
+        (Get-ShiftWindow $ini (Get-TestTime "06:00")).Start | Should Be (Get-TestTime "08:00")
+        (Get-ShiftWindow $ini (Get-TestTime "18:00")).Start | Should Be (Get-TestTime "08:00").AddDays(1)
+    }
+
+    It "returns nothing when no shift is enabled" {
+        Get-ShiftWindow (New-ScheduleIni) (Get-TestTime "12:00") | Should Be $null
+    }
+}
+
+Describe "Get-StopTime" {
+
+    It "adds the extra minutes to the end of the start's shift" {
+        Get-StopTime @{} (Get-TestTime "08:15") 60 | Should Be (Get-TestTime "17:30")
+    }
+
+    It "returns nothing when no shift is enabled" {
+        Get-StopTime (New-ScheduleIni) (Get-TestTime "08:15") 60 | Should Be $null
+    }
+}
+
 Describe "Format-Duration" {
 
     It "formats seconds, minutes and hours" {

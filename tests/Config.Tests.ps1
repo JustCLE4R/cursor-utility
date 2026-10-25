@@ -117,19 +117,21 @@ Describe "New-DefaultConfig" {
 
         $Enabled | Should Be $true
         $LogEnabled | Should Be $true
-        $MinInterval | Should Be 60
-        $MaxInterval | Should Be 120
+        $StopAfterShift | Should Be $true
+        $StopExtraMinutes | Should Be 60
+        $MinInterval | Should Be 15
+        $MaxInterval | Should Be 60
         $IdleSeconds | Should Be 120
         $ReturnAfterMove | Should Be $true
         $SmoothMove | Should Be $true
         $CornerDelayMin | Should Be 700
         $CornerDelayMax | Should Be 2200
-        $ClickOrder | Should Be "top_first"
+        $ClickOrder | Should Be "bottom_first"
         $ActionsFile | Should Be ""
         $ActionsPath | Should Be ""
-        $RestoreFocus | Should Be $true
-        $BreakEnabled | Should Be $false
-        $BreakChance | Should Be 5
+        $RestoreFocus | Should Be $false
+        $BreakEnabled | Should Be $true
+        $BreakChance | Should Be 1
         $BreakMinMinutes | Should Be 5
         $BreakMaxMinutes | Should Be 20
         $IsDryRun | Should Be $false
@@ -155,7 +157,7 @@ Describe "Import-Settings" {
     It "uses defaults for an empty file" {
         Import-Settings (New-TestIni @(""))
 
-        $MinInterval | Should Be 60
+        $MinInterval | Should Be 15
         $CornerDelayMax | Should Be 2200
     }
 
@@ -177,6 +179,22 @@ Describe "Import-Settings" {
         $CornerDelayMax | Should Be 50
     }
 
+    It "stops 60 minutes after the shift by default" {
+        Import-Settings (New-TestIni @(""))
+
+        $StopAfterShift | Should Be $true
+        $StopExtraMinutes | Should Be 60
+    }
+
+    It "reads the stop settings and raises negative extra minutes to 0" {
+        Import-Settings (New-TestIni @("[general]", "stop_after_shift=false", "stop_extra_minutes=15"))
+        $StopAfterShift | Should Be $false
+        $StopExtraMinutes | Should Be 15
+
+        Import-Settings (New-TestIni @("[general]", "stop_extra_minutes=-3"))
+        $StopExtraMinutes | Should Be 0
+    }
+
     foreach ($order in @("top_first", "bottom_first", "random")) {
         It "accepts click order '$order'" {
             Import-Settings (New-TestIni @("[click]", "order=$order"))
@@ -191,12 +209,12 @@ Describe "Import-Settings" {
         $ClickOrder | Should Be "bottom_first"
     }
 
-    It "falls back to top_first for a missing or unknown click order" {
+    It "falls back to bottom_first for a missing or unknown click order" {
         Import-Settings (New-TestIni @(""))
-        $ClickOrder | Should Be "top_first"
+        $ClickOrder | Should Be "bottom_first"
 
         Import-Settings (New-TestIni @("[click]", "order=sideways"))
-        $ClickOrder | Should Be "top_first"
+        $ClickOrder | Should Be "bottom_first"
     }
 
     It "resolves the actions file next to the config file" {

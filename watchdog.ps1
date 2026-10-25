@@ -6,7 +6,8 @@
 .DESCRIPTION
     - Crash: Cursor Utility exits with a non-zero code. Restarted after a pause.
     - Hang: its heartbeat file hasn't changed for [watchdog] hang_seconds. Stopped and restarted.
-    - Normal exit (code 0: Exit from the tray, disabled in config, already running): the watchdog stops.
+    - Normal exit (code 0: Exit from the tray, disabled in config, shift over, already running): the watchdog stops.
+    - Every start gets the watchdog's own start time, so restarts keep the shift it started in ([general] stop_after_shift).
     - Too many restarts within 10 minutes ([watchdog] max_restarts): it gives up, logs why and shows a notice.
     With [watchdog] enabled=false, it starts Cursor Utility once and stops watching.
     Its own log is logs\watchdog.log, so the two processes never write to the same file.
@@ -93,7 +94,8 @@ function Get-AppArguments {
         "-NoProfile", "-STA", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
         "-File", "`"$AppScript`"",
         "-Config", "`"$ConfigFile`"",
-        "-HeartbeatFile", "`"$HeartbeatFile`""
+        "-HeartbeatFile", "`"$HeartbeatFile`"",
+        "-StartedAt", $FirstStart.ToString("s")
     )
 
     if ($DryRun)  { $arguments += "-DryRun" }
@@ -195,6 +197,8 @@ Write-Log "Watchdog started (pid $PID). Restarts on crash, or after $HangSeconds
 
 $restarts = New-Object System.Collections.ArrayList
 $ExitCode = 0
+# Passed to every start, so [general] stop_after_shift uses this time's shift and not the last restart's
+$FirstStart = Get-Date
 
 try {
     while ($true) {
