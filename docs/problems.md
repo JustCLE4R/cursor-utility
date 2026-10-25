@@ -1,11 +1,11 @@
 # Cursor Utility: Known Problems
 
 Problems found in the code and the log. Ordered by impact.
-Last validated 2026-10-18 against commit `d742d49`. Each entry's **Checked** line says how it was confirmed.
+Last validated 2026-10-18 against commit `d742d49`; line numbers updated 2026-10-25. Each entry's **Checked** line says how it was confirmed.
 
 ## 1. Bottom-left click hits the Start button
 
-- **Where:** the built-in corner steps, `Get-CornerSteps` in `modules/ActionScript.ps1` (line 352)
+- **Where:** the built-in corner steps, `Get-CornerSteps` in `modules/ActionScript.ps1` (line 365)
 - **What happens:** on a default Windows 10 taskbar, (0, 1079) is the Start button, so every cycle (in any `click.order`) probably opens the Start menu and leaves it open. The top-left click at (0, 0) can hit a maximized window's system menu or File menu.
 - **Fix options:**
   - Click safer points, or move without clicking
@@ -19,25 +19,26 @@ Last validated 2026-10-18 against commit `d742d49`. Each entry's **Checked** lin
 
 - **Status:** accepted as a known limitation (2026-10-18). It only matters for the 3–5 seconds a cycle runs, and most people move the mouse first when they come back, which cancels the cycle properly. Not planned for now.
 
-- **Where:** `modules/Actions.ps1`, the `finally` block of `Invoke-ActionCycle` (line 227)
+- **Where:** `modules/Actions.ps1`, the `finally` block of `Invoke-ActionCycle` (line 310)
 - **What happens:** after each cycle, `IgnoreInputBefore` is set to the current time, so any input during the 3–5 second action counts as the script's own. Mouse movement cancels the cycle (`UserMoved`), but keystrokes don't. The script carries on as if you were still idle and clicks again on the next cycle.
 - **Fix:** set `IgnoreInputBefore` right after each synthetic move or click instead of at the end of the cycle, and check `GetLastInputInfo` inside `Assert-NotInterrupted` (`modules/Input.ps1` line 326). Or use a low-level keyboard hook.
 - **Checked (code):** `Assert-NotInterrupted` only compares the cursor position; nothing in a cycle reads `GetLastInputInfo`; `Update-UserActivity` returns early while `$InAction` is set; and the `finally` block moves `IgnoreInputBefore` past anything typed during the cycle. Key steps from an actions file make the fix harder, because they're keyboard input too.
 
 ## 3. Cursor left in a corner when paused or exited mid-cycle
 
-- **Where:** `modules/Actions.ps1`, the `Interrupted` path of `Invoke-ActionCycle` (line 209)
+- **Where:** `modules/Actions.ps1`, the `Interrupted` path of `Invoke-ActionCycle` (line 302)
 - **What happens:** turning the utility off or exiting during a cycle stops it immediately and skips moving the cursor back. This also applies to `-RunOnce`. It doesn't happen with `-DryRun`, because the cursor never moves. A window switched by `focus` is still switched back.
 - **Fix:** on `Interrupted` (not `UserMoved`), move the cursor back to `$original` when `return_after_move=true`.
 - **Checked (code):** the `Interrupted` branch only sets `$LastCycleResult = "stopped"`. The return move is the last step inside `try`, so it's skipped.
 
 ## 4. Config reading is fragile
 
-- **Where:** `Read-Ini` in `modules/Config.ps1` (line 5), `Convert-ToMinutes` in `modules/Schedule.ps1` (line 12), the first `Import-Settings` call in `cursor-utility.ps1` (line 70)
+- **Where:** `Read-Ini` in `modules/Config.ps1` (line 5), `Convert-ToMinutes` in `modules/Schedule.ps1` (line 12), the first `Import-Settings` call in `cursor-utility.ps1` (line 81)
 - **What happens:**
   - The config is read every second. If an editor is saving it at the same moment, `Get-Content` can fail. The log shows this once: `[2026-10-17 20:21:05] ERROR: Stream was not readable.`
   - An invalid time such as `24:00`, `8.30` or an empty value makes `TimeSpan.Parse` throw. Every loop tick then fails and waits 30 seconds. The tests confirm this: `Schedule.Tests.ps1` "throws on an invalid shift time".
   - **At startup** the first `Import-Settings` runs outside any `try`. If it fails there, the hidden process exits with no tray icon, no message box and no log line, because logging isn't set up yet.
+  - **Also at startup:** with `stop_after_shift=true`, the "Stops at ..." log line calls `Get-ShiftWindow` outside any `try`. An invalid shift time therefore crashes the start instead of only failing each tick. Under the watchdog, that means restarts until it gives up.
 - **Fix:**
   - Retry the read, or keep the last good settings when it fails
   - Parse times with `TryParseExact("hh\:mm")`, log a warning once and fall back to the default
@@ -46,7 +47,8 @@ Last validated 2026-10-18 against commit `d742d49`. Each entry's **Checked** lin
   - `Read-Ini` on a file another program holds open throws `IOException: ... being used by another process`, and works again once it's released.
   - `Convert-ToMinutes` throws for `24:00` ("out of range"), `8.30` and an empty value ("not recognized as a valid TimeSpan").
   - `Get-ActiveShift` with `pagi_start=` throws the same, so it would fail every tick.
-  - The startup `Import-Settings` (`cursor-utility.ps1` line 70) is outside any `try`.
+  - The startup `Import-Settings` (`cursor-utility.ps1` line 81) is outside any `try`.
+  - **Checked (code), 2026-10-25:** the startup stop-time log (`Get-ShiftWindow`) is outside any `try`, and `Get-ShiftWindow` calls `Convert-ToMinutes` for every enabled shift.
 
 ## 5. Positions are relative to the primary monitor only
 
@@ -60,7 +62,7 @@ Last validated 2026-10-18 against commit `d742d49`. Each entry's **Checked** lin
 
 ## 6. Using the PC during a break doesn't end it
 
-- **Where:** main loop in `cursor-utility.ps1`: the break check (line 327) runs before the idle check (line 343)
+- **Where:** main loop in `cursor-utility.ps1`: the break check (line 369) runs before the idle check (line 385)
 - **What happens:** a break ends only by time or from the tray (**End break now**). While you're at the PC, the icon stays purple and says "On a break", although you're really active. Nothing clicks either way, because when the break ends the idle check takes over. So the effect is only a misleading status.
 - **Fix (if wanted):** during a break, if the idle time is below `idle_seconds`, clear `$BreakUntil`, log "Break ended: you're back." and fall through to the normal waiting state.
 - **Checked (code):** while `$BreakUntil` is in the future, the loop `continue`s before `Get-UserIdleSeconds` is reached.

@@ -9,7 +9,7 @@ A small Windows tray app that keeps your session looking active while you're awa
 - bring a window to the front
 - wait
 
-It only runs during the shifts you configure. It pauses on its own as soon as you touch the mouse, and now and then it can take a longer break, like a person getting coffee. The tray icon shows what it's doing at a glance, and you can switch it on or off from there at any time.
+It only runs during the shifts you configure, and exits by itself an hour after the shift you started it in is over. It pauses on its own as soon as you touch the mouse, and now and then it takes a longer break, like a person getting coffee. The tray icon shows what it's doing at a glance, and you can switch it on or off from there at any time. A watchdog restarts it if it ever crashes.
 
 ## Requirements
 
@@ -20,7 +20,8 @@ It only runs during the shifts you configure. It pauses on its own as soon as yo
 
 1. Double-click **`run.bat`**.
 2. A dot appears in the system tray (see the colours below).
-3. Stop using the mouse and keyboard. After `idle_seconds` (2 minutes by default) it starts a cycle every 1–2 minutes.
+3. Stop using the mouse and keyboard. After `idle_seconds` (2 minutes by default) it starts a cycle every 15–60 seconds.
+4. It exits by itself 1 hour after your shift ends. Started at 08:15, that's the pagi shift (08:00–16:30), so it stops at 17:30. See [Stopping after your shift](#stopping-after-your-shift).
 
 No console window opens. The tray icon is the only sign that it's running.
 
@@ -52,7 +53,7 @@ A **ring** that fills clockwise shows progress. A **white badge** in the corner 
 |---|---|
 | Status | `You are active (idle 30s of 2m 00s)` |
 | Next | `Next cycle at 14:05:12` / `Break ends at 14:20` |
-| Shift | `Shift: pagi, 08:00-16:30` |
+| Shift | `Shift: pagi, 08:00-16:30, stops at 17:30` |
 | Actions | `Actions: actions.txt (5 steps)` / `Actions: corners, bottom first` |
 | Today | `Today: 42 done, 3 cancelled` |
 | Last cycle | `Last cycle: 14:03:40, done` |
@@ -67,6 +68,11 @@ Moving the mouse during a cycle cancels it straight away, and it waits for you t
 Edit **`config.ini`**. Changes apply within a second, with no restart needed.
 
 ```ini
+[general]
+# Exit when the shift you started in is over, plus this many minutes
+stop_after_shift=true
+stop_extra_minutes=60
+
 [activity]
 # Time between cycles
 min_interval_seconds=15
@@ -105,9 +111,26 @@ pagi_end=16:30
 
 Comments must be on their own line, starting with `#` or `;`. Text after a value counts as part of the value.
 
-By default the three shifts (subuh, pagi, malam) together cover all 24 hours. Turn shifts off or narrow their times to pause outside working hours. To stop it entirely, set `enabled=false` under `[general]`. It exits by itself 1 hour after the shift you started it in is over (started at 08:15, that's pagi, so it stops at 17:30). Change the extra time with `stop_extra_minutes` under `[general]`, or set `stop_after_shift=false` to keep it running.
+By default the three shifts (subuh, pagi, malam) together cover all 24 hours. Turn shifts off or narrow their times to pause outside working hours. To stop it entirely, set `enabled=false` under `[general]`.
 
 If `config.ini` is missing, a commented default is created on the next start.
+
+### Stopping after your shift
+
+When it starts, it works out which shift you're starting in and exits `stop_extra_minutes` (60 by default) after that shift ends:
+
+| Started at | Shift | Stops at |
+|---|---|---|
+| 08:15 | pagi (08:00–16:30) | 17:30 |
+| 16:10 | malam (16:00–00:30) | 01:30 the next day |
+| 00:15 | subuh (00:00–08:30) | 09:30 |
+
+- **Overlapping shifts:** the shifts overlap, so the one that started most recently counts. At 08:15 that's pagi, not subuh.
+- **Outside every shift:** the next shift to start counts.
+- **Crashes:** a restart by the watchdog keeps the same stop time.
+- **Turning it off:** set `stop_after_shift=false` under `[general]` to keep it running until you exit it.
+
+The stop time shows in the tray menu's shift line, and is logged at start.
 
 **All settings:** [docs/configuration.md](docs/configuration.md)
 
@@ -134,14 +157,14 @@ scroll up 3
 
 - **Positions:** pixels (`250`), percentages (`50%`), or words: `left`, `center` and `right` for X, `top`, `center` and `bottom` for Y. Words take an offset, e.g. `right-10`.
 - **Click types:** `left`, `right`, `middle` and `double`.
-- **Coming back:** the window you had in front comes back after the cycle, and after `focus tab` the browser goes back to the tab you were on.
+- **Coming back:** with `restore_focus=true` under `[actions]`, the window you had in front comes back after the cycle, and after `focus tab` the browser goes back to the tab you were on. It's off by default, so the focused window stays in front.
 - **Browser tabs:** `focus tab` searches Edge, Chrome, Brave, Vivaldi, Opera and Firefox. Change the list with `browsers=` under `[actions]`.
 - **Saving:** changes apply as soon as you save the file.
 - **Mistakes:** a mistake turns the icon red and shows the line number until it's fixed.
 
-The shipped `actions.txt` explains every command in its comments, and its default steps do the same as the corner clicks. Try your steps safely with `.\cursor-utility.ps1 -RunOnce -DryRun -Overlay`.
+The shipped `actions.txt` lists every command in its comments. Try your steps safely with `.\cursor-utility.ps1 -RunOnce -DryRun -Overlay`.
 
-**Full reference:** [docs/actions.md](docs/actions.md)
+**Full guide to writing your own macro**, with every command, key and error message, how to find pixel positions and window names, and examples: [docs/actions.md](docs/actions.md)
 
 ## Command-line options
 
@@ -157,6 +180,8 @@ The shipped `actions.txt` explains every command in its comments, and its defaul
 | `-RunOnce` | One cycle right now, ignoring the schedule, idle time and breaks, then exit |
 | `-Overlay` | Show red markers where each click lands |
 | `-Config <path>` | Use a different config file (created if missing) |
+
+**"Running scripts is disabled on this system"?** Windows blocks `.ps1` files by default. `run.bat` and `test.bat` work regardless. For the `.ps1` commands, either allow scripts for the current PowerShell window with `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`, or start them as `powershell -ExecutionPolicy Bypass -File .\cursor-utility.ps1 -RunOnce -DryRun`.
 
 ## Start with Windows
 
@@ -183,6 +208,7 @@ If you used a Startup-folder shortcut before, the installer tells you so you can
 | It stops responding for 3 minutes (no heartbeat) | Stops it and restarts it |
 | More than 5 restarts within 10 minutes | Gives up, shows a notice and writes the reason to `logs\watchdog.log` |
 | You click **Exit** in the tray | Nothing: a normal exit stops the watchdog too |
+| Your shift is over (stop time reached) | Nothing: that's a normal exit too |
 
 To stop it for good, use **Exit** in the tray menu. Killing it in Task Manager counts as a crash, so the watchdog starts it again.
 
@@ -204,6 +230,7 @@ The full list, with fixes, is in [docs/problems.md](docs/problems.md). Planned f
 
 ```
 run.bat / run.vbs     Hidden launcher (starts the watchdog)
+test.bat              Runs the unit tests
 watchdog.ps1          Starts Cursor Utility and restarts it after a crash or hang
 install-task.ps1      Start at logon via Task Scheduler
 cursor-utility.ps1    Main script: options, startup, main loop
@@ -212,13 +239,14 @@ tests/                Pester unit tests
 config.ini            Your settings
 actions.txt           Your steps (used when [actions] file=actions.txt)
 docs/                 Architecture, configuration, actions, testing, problems, ideas
-logs/                 Runtime log
+logs/                 Runtime logs
 ```
 
 ## Development
 
 ```powershell
 .\test.bat                                          # unit tests (Pester 3.4, built into Windows)
+.\test.bat -TestName Get-ShiftWindow                # one group of tests
 .\cursor-utility.ps1 -RunOnce -DryRun -Overlay      # safe manual check
 ```
 

@@ -9,6 +9,7 @@ A Windows tray app in PowerShell. While the user is idle and the time is inside 
 - **With an actions file:** the user's own steps instead: `move`, `click`, `key`, `scroll`, `wait`, `focus`.
 
 It also has:
+- an automatic exit `stop_extra_minutes` after the shift it was started in ends
 - occasional long breaks
 - single-instance protection
 - display-change handling
@@ -51,7 +52,8 @@ modules/
   Config.ps1         INI parsing, default config text, Import-Settings          (pure)
   Log.ps1            Write-Log with 1 MB rotation
   Random.ps1         $Random, Get-NaturalRandom (bell-curve delays)             (pure)
-  Schedule.ps1       Shifts, Get-ActiveShift, Format-Duration                   (pure)
+  Schedule.ps1       Shifts, Get-ActiveShift, Get-ShiftWindow/Get-StopTime      (pure)
+                     (exit after the start's shift), Format-Duration
   ActionScript.ps1   Actions-file parser, key table, Get-CornerSteps            (pure)
   Input.ps1          MouseApi (Win32 via Add-Type): idle detection, movement, clicks,
                      wheel, keys, window focus, display signature

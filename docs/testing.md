@@ -10,16 +10,16 @@ Invoke-Pester .\tests
 
 - **`test.bat`:** starts PowerShell with `-ExecutionPolicy Bypass` for that process only, and exits with the number of failed tests (0 = all passed).
 - **Pester version:** 3.4.0 (built into Windows), so use v3 syntax: `$x | Should Be 5`, `{ ... } | Should Throw`. Pester 5 syntax (`Should -Be`, top-level `BeforeAll`) won't run. If Pester 5 is ever installed, the tests must be migrated.
-- **Speed:** about 2 seconds. No network access, admin rights or display needed.
+- **Speed:** about 5 seconds. No network access, admin rights or display needed.
 
 | File | Covers |
 |---|---|
-| `tests/Config.Tests.ps1` | `Read-Ini`, `Get-IniBool`, `Get-IniInt`, `New-DefaultConfig`, `Import-Settings` (defaults, clamping, `[debug]`, switches overriding the config) |
-| `tests/Schedule.Tests.ps1` | `Convert-ToMinutes`, `Test-ShiftActive` (normal and cross-midnight, inclusive ends), `Test-ScheduleActive` with a fixed `-Now` |
+| `tests/Config.Tests.ps1` | `Read-Ini`, `Get-IniBool`, `Get-IniInt`, `New-DefaultConfig` (the generated file must load with the built-in defaults), `Import-Settings` (defaults, clamping, `[debug]`, switches overriding the config) |
+| `tests/Schedule.Tests.ps1` | `Convert-ToMinutes`, `Test-ShiftActive` (normal and cross-midnight, inclusive ends), `Test-ScheduleActive` with a fixed `-Now`, `Get-ShiftWindow` (overlaps, midnight, outside every shift), `Get-StopTime` |
 | `tests/Random.Tests.ps1` | `Get-NaturalRandom`: bounds, integer results, centring, bell shape |
 | `tests/ActionScript.Tests.ps1` | `Resolve-ActionCoordinate`, `ConvertTo-KeyCombo`, every command and error in `ConvertFrom-ActionLine`, `Read-ActionScript` (comments, line numbers, errors, the shipped `actions.txt`), `Get-CornerSteps` |
 
-`Config.Tests.ps1` also covers `[actions]` (path resolution) and `[break]` (clamping). `Schedule.Tests.ps1` also covers `Get-ActiveShift` and `Format-Duration`.
+`Config.Tests.ps1` also covers `[general]` (the stop settings), `[actions]` (path resolution), `[break]` and `[watchdog]` (clamping). If you change a default, change it in both `Import-Settings` and `$DefaultConfigText`, or the generated-config test fails. `Schedule.Tests.ps1` also covers `Get-ActiveShift` and `Format-Duration`.
 
 ### Writing tests
 
@@ -54,6 +54,16 @@ Stop-Process -Id $p.Id -Force
 ```
 
 Moving the mouse during smoke test 1 cancels the cycle ("User moved the mouse. Cycle cancelled.").
+
+**Stop after the shift:** start a dry-run main loop with `-StartedAt` set to yesterday 08:15. Its stop time (yesterday 17:30) is already past, so it should log `Stops at <yesterday> 17:30: shift pagi ends 16:30, plus 60 min`, then `Shift over plus 60 min (stop_after_shift). Exiting.`, and exit with code 0 within a few seconds:
+
+```powershell
+$started = (Get-Date).Date.AddDays(-1).AddHours(8).AddMinutes(15).ToString("s")
+$p = Start-Process powershell.exe -PassThru -Wait -ArgumentList `
+    "-NoProfile","-STA","-ExecutionPolicy","Bypass","-File",".\cursor-utility.ps1",
+    "-Config",$cfg,"-DryRun","-StartedAt",$started
+$p.ExitCode                                     # expect 0
+```
 
 **Overlay:** the markers can't be checked automatically. Ask the user to watch the top-left and bottom-left corners during smoke test 1.
 
@@ -96,7 +106,7 @@ Get-BrowserTabs @("msedge") | ForEach-Object { "{0} '{1}'  in '{2}'" -f $(if ($_
 
 ## Checklist before handing back
 
-- [ ] `Invoke-Pester .\tests` passes with 0 failures
+- [ ] `Invoke-Pester .\tests` (or `.\test.bat`) passes with 0 failures
 - [ ] The smoke tests pass if you touched `cursor-utility.ps1` or a non-pure module
 - [ ] No new `ERROR:` lines in `logs\cursor-utility.log` from your runs
 - [ ] Docs updated (`AGENTS.md` layout, `docs/*` including `ideas.md` and `problems.md`)

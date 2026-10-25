@@ -11,6 +11,10 @@
 
 `run.bat` and `run.vbs` pass any arguments on to the script.
 
+`watchdog.ps1` also passes two internal options, which you don't normally set yourself: `-HeartbeatFile <path>` (the app writes the time there every 10 s or so) and `-StartedAt yyyy-MM-ddTHH:mm:ss` (the time whose shift sets the stop time, see [Stopping after the shift](#stopping-after-the-shift)).
+
+**Execution policy:** with Windows' default policy, `.\cursor-utility.ps1` fails with "running scripts is disabled". `run.bat` and `test.bat` pass `-ExecutionPolicy Bypass` themselves. For the script, use `powershell -ExecutionPolicy Bypass -File .\cursor-utility.ps1 ...`, or run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` once in that window.
+
 **Single instance:** only one normal copy runs at a time. A second copy logs "Another copy is already running", shows a short tray notice and exits. A dry run or `-RunOnce` may start next to a running copy, so you can test without stopping it.
 
 ## `config.ini`

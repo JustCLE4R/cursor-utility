@@ -23,7 +23,7 @@ Because the modules are dot-sourced, functions find each other's variables at ca
 
 ## Startup
 
-1. Resolve `-Config`, creating the file if it's missing. Run `Import-Settings`, and exit if `enabled=false`.
+1. Resolve `-Config`, creating the file if it's missing. Run `Import-Settings`, and exit if `enabled=false`. Set `$StartTime` from `-StartedAt`, or to now.
 2. **Single instance:** take the named mutex `Local\CursorUtility`.
    - If another copy holds it and this run is neither a dry run nor `-RunOnce`, log, show a 4-second tray balloon (`Show-AlreadyRunningNotice`) and exit.
    - Dry runs and `-RunOnce` may run next to a copy that's already going, so the smoke tests work.
@@ -68,7 +68,7 @@ The loop ticks once a second, using `Wait-Responsive 1000` so the tray stays res
 
 ```
 reload config -> reload actions file if changed -> update idle tracking
--> log display changes -> work out the active shift
+-> log display changes -> work out the active shift and the stop time (Get-StopTime)
   disabled in config?        -> log, exit
   start's shift over + extra? -> log, exit (code 0, so the watchdog stops too)
   paused from tray?          -> state "paused"
@@ -146,7 +146,7 @@ With progress, the dot is drawn as a ring that fills clockwise in 12 steps. In a
 **Tooltip:** three lines: on/off (plus dry run), the status, and today's done/cancelled counts. `NotifyIcon.Text` is capped at 63 characters in .NET Framework, so `Set-TrayText` sets the private `text` field and calls `UpdateIcon` through reflection, allowing up to 127. It falls back to the public property, truncated, if that fails.
 
 **Menu:**
-- Disabled info lines: status, next cycle or break end, active shift, actions source, today's counts, last cycle time and result
+- Disabled info lines: status, next cycle or break end, active shift (plus the stop time with `stop_after_shift`), actions source, today's counts, last cycle time and result
 - Turn ON/OFF
 - End break now (only during a break)
 - Exit
@@ -155,7 +155,7 @@ With progress, the dot is drawn as a ring that fills clockwise in 12 steps. In a
 
 ```
 Task Scheduler (at logon, +30 s)  ─┐
-run.bat ───────────────────────────┴─> wscript run.vbs ─> powershell watchdog.ps1 ─> powershell cursor-utility.ps1 -HeartbeatFile logs\heartbeat.txt
+run.bat ───────────────────────────┴─> wscript run.vbs ─> powershell watchdog.ps1 ─> powershell cursor-utility.ps1 -HeartbeatFile logs\heartbeat.txt -StartedAt <first start>
 ```
 
 - **`install-task.ps1`:** registers the logon task for the current user:
@@ -167,8 +167,9 @@ run.bat ────────────────────────
 - **`watchdog.ps1`:** a separate process. It dot-sources only `Log.ps1` and `Config.ps1`, and logs to `logs\watchdog.log` so it never contends with the app for one file.
   - **Single instance:** mutex `Local\CursorUtility-Watchdog`, bypassed for dry runs and `-RunOnce`, like the app's.
   - **Before each start:** reads `[watchdog]`, deletes the old heartbeat, and starts the app hidden, redirecting its stderr to `logs\app-errors.txt`.
+  - **`-StartedAt`:** every start gets the time the watchdog itself started (`yyyy-MM-ddTHH:mm:ss`). The app works out its stop time from that time's shift, so a restart after a crash keeps the same stop time.
   - **Every 5 s:** checks whether the app has exited, and how old the heartbeat is.
-  - **Exit code 0:** a normal exit (tray Exit, `enabled=false`, already running), so the watchdog stops too.
+  - **Exit code 0:** a normal exit (tray Exit, `enabled=false`, stop time reached, already running), so the watchdog stops too.
   - **Any other exit code:** a crash. The app's stderr is copied into the log, then it restarts.
   - **Heartbeat older than `hang_seconds`:** `Stop-Process`, then restart.
   - **Restart delay:** 5 s, doubling up to 60 s. If there are more than `max_restarts` within 10 minutes, it gives up with exit code 1 and a balloon.
