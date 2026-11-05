@@ -119,6 +119,7 @@ Describe "New-DefaultConfig" {
         $LogEnabled | Should Be $true
         $StopAfterShift | Should Be $true
         $StopExtraMinutes | Should Be 60
+        $ShiftEarlyMinutes | Should Be 60
         $MinInterval | Should Be 15
         $MaxInterval | Should Be 60
         $IdleSeconds | Should Be 120
@@ -184,15 +185,18 @@ Describe "Import-Settings" {
 
         $StopAfterShift | Should Be $true
         $StopExtraMinutes | Should Be 60
+        $ShiftEarlyMinutes | Should Be 60
     }
 
-    It "reads the stop settings and raises negative extra minutes to 0" {
-        Import-Settings (New-TestIni @("[general]", "stop_after_shift=false", "stop_extra_minutes=15"))
+    It "reads the stop settings and raises negative minutes to 0" {
+        Import-Settings (New-TestIni @("[general]", "stop_after_shift=false", "stop_extra_minutes=15", "shift_early_minutes=30"))
         $StopAfterShift | Should Be $false
         $StopExtraMinutes | Should Be 15
+        $ShiftEarlyMinutes | Should Be 30
 
-        Import-Settings (New-TestIni @("[general]", "stop_extra_minutes=-3"))
+        Import-Settings (New-TestIni @("[general]", "stop_extra_minutes=-3", "shift_early_minutes=-3"))
         $StopExtraMinutes | Should Be 0
+        $ShiftEarlyMinutes | Should Be 0
     }
 
     foreach ($order in @("top_first", "bottom_first", "random")) {

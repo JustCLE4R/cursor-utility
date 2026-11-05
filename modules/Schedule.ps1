@@ -79,16 +79,19 @@ function Test-ScheduleActive {
 
 # The shift a run starting at $Now belongs to, as @{ Name; Start; End } with full dates.
 # The shifts overlap, so the one that started most recently wins: at 08:15 that's
-# pagi (from 08:00), not subuh. Outside every shift it's the next one to start.
-# $null if no shift is enabled.
+# pagi (from 08:00), not subuh. A shift starting within $EarlyMinutes counts as already
+# started, so arriving at 07:45 is pagi too. Outside every shift it's the next one to
+# start. $null if no shift is enabled.
 function Get-ShiftWindow {
     param(
         [hashtable]$Ini,
-        [datetime]$Now = (Get-Date)
+        [datetime]$Now = (Get-Date),
+        [int]$EarlyMinutes = 0
     )
 
     $current = $null
     $next = $null
+    $latestStart = $Now.AddMinutes($EarlyMinutes)
 
     foreach ($shift in $DefaultShifts) {
 
@@ -101,9 +104,9 @@ function Get-ShiftWindow {
         $startMinutes = Convert-ToMinutes (Get-IniValue $Ini "schedule.$($name)_start" $shift[1])
         $endMinutes = Convert-ToMinutes (Get-IniValue $Ini "schedule.$($name)_end" $shift[2])
 
-        # The latest start at or before now
-        $start = $Now.Date.AddMinutes($startMinutes)
-        if ($start -gt $Now) {
+        # The most recent start, counting one that's due within the early window
+        $start = $latestStart.Date.AddMinutes($startMinutes)
+        if ($start -gt $latestStart) {
             $start = $start.AddDays(-1)
         }
 
@@ -137,10 +140,11 @@ function Get-StopTime {
     param(
         [hashtable]$Ini,
         [datetime]$Start,
-        [int]$ExtraMinutes
+        [int]$ExtraMinutes,
+        [int]$EarlyMinutes = 0
     )
 
-    $window = Get-ShiftWindow $Ini $Start
+    $window = Get-ShiftWindow $Ini $Start $EarlyMinutes
 
     if (-not $window) {
         return $null

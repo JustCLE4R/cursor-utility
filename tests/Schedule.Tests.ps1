@@ -159,12 +159,61 @@ Describe "Get-ShiftWindow" {
     It "returns nothing when no shift is enabled" {
         Get-ShiftWindow (New-ScheduleIni) (Get-TestTime "12:00") | Should Be $null
     }
+
+    Context "with an early window of 60 minutes" {
+
+        It "counts a shift starting soon as the current one" {
+            $window = Get-ShiftWindow $defaults (Get-TestTime "07:45") 60
+
+            $window.Name | Should Be "pagi"
+            $window.Start | Should Be (Get-TestTime "08:00")
+            $window.End | Should Be (Get-TestTime "16:30")
+        }
+
+        It "includes the exact start of the window and nothing before it" {
+            (Get-ShiftWindow $defaults (Get-TestTime "07:00") 60).Name | Should Be "pagi"
+            (Get-ShiftWindow $defaults (Get-TestTime "06:59") 60).Name | Should Be "subuh"
+        }
+
+        It "reaches a shift that starts after midnight" {
+            $window = Get-ShiftWindow $defaults (Get-TestTime "23:30") 60
+
+            $window.Name | Should Be "subuh"
+            $window.Start | Should Be (Get-TestTime "00:00").AddDays(1)
+            $window.End | Should Be (Get-TestTime "08:30").AddDays(1)
+        }
+
+        It "reaches a shift that crosses midnight" {
+            $window = Get-ShiftWindow $defaults (Get-TestTime "15:30") 60
+
+            $window.Name | Should Be "malam"
+            $window.End | Should Be (Get-TestTime "00:30").AddDays(1)
+        }
+
+        It "keeps the started shift when no other starts soon" {
+            (Get-ShiftWindow $defaults (Get-TestTime "12:00") 60).Name | Should Be "pagi"
+        }
+
+        It "still moves on to tomorrow after the only shift has ended" {
+            $ini = New-ScheduleIni @{ pagi = @("08:00", "16:30") }
+
+            (Get-ShiftWindow $ini (Get-TestTime "23:30") 60).Start | Should Be (Get-TestTime "08:00").AddDays(1)
+        }
+    }
+
+    It "has no early window by default" {
+        (Get-ShiftWindow $defaults (Get-TestTime "07:45")).Name | Should Be "subuh"
+    }
 }
 
 Describe "Get-StopTime" {
 
     It "adds the extra minutes to the end of the start's shift" {
         Get-StopTime @{} (Get-TestTime "08:15") 60 | Should Be (Get-TestTime "17:30")
+    }
+
+    It "stops after the coming shift when started in its early window" {
+        Get-StopTime @{} (Get-TestTime "07:45") 60 60 | Should Be (Get-TestTime "17:30")
     }
 
     It "returns nothing when no shift is enabled" {

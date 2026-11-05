@@ -31,6 +31,7 @@
 | `general.log_enabled` | `true` | — | write `logs\cursor-utility.log` |
 | `general.stop_after_shift` | `true` | — | exit when the shift it was started in is over, plus `stop_extra_minutes`; see [Stopping after the shift](#stopping-after-the-shift). `false` = run until stopped. |
 | `general.stop_extra_minutes` | `60` | ≥ 0 | how long to keep going after that shift ends |
+| `general.shift_early_minutes` | `60` | ≥ 0 | starting this long before a shift counts as starting that shift; `0` = a shift only counts once it has started |
 | `activity.min_interval_seconds` | `15` | ≥ 1 | shortest time between cycles |
 | `activity.max_interval_seconds` | `60` | ≥ min | longest time between cycles |
 | `activity.idle_seconds` | `120` | ≥ 0 | how long you must be idle before cycles run |
@@ -81,11 +82,12 @@ The schedule is active if any enabled shift matches the current minute. The defa
 With `stop_after_shift=true`, the app works out at start which shift you're starting in, and exits `stop_extra_minutes` after that shift ends.
 
 - **Overlapping shifts:** the shift that started most recently counts. Started at 08:15 with the defaults, that's pagi (08:00–16:30), not subuh, so it stops at 17:30.
+- **Starting early:** a shift that starts within `shift_early_minutes` already counts. Started at 07:45 with the defaults, that's pagi, so it stops at 17:30. This also applies late in a shift: restarting at 15:30 counts as malam, so it stops at 01:30. Cycles still follow the schedule, so with only pagi enabled they wait until 08:00.
 - **Midnight:** started at 16:10, it's malam, which ends at 00:30 the next day, so it stops at 01:30.
 - **Outside every shift:** the next shift to start counts.
 - **Restarts:** under the watchdog the shift comes from the watchdog's start (passed as `-StartedAt`), so a crash restart keeps the same stop time. The exit is normal, so the watchdog stops too.
 - **Changes:** edits to the shift times or these keys apply live. `-RunOnce` ignores them.
-- **Tray:** the shift line in the menu shows the stop time.
+- **Tray:** the shift line in the menu shows this shift and its stop time. With `stop_after_shift=false`, it shows the shift for the current time, using the same rules.
 
 ## Adding a setting
 

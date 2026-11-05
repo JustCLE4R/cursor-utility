@@ -15,7 +15,7 @@ Invoke-Pester .\tests
 | File | Covers |
 |---|---|
 | `tests/Config.Tests.ps1` | `Read-Ini`, `Get-IniBool`, `Get-IniInt`, `New-DefaultConfig` (the generated file must load with the built-in defaults), `Import-Settings` (defaults, clamping, `[debug]`, switches overriding the config) |
-| `tests/Schedule.Tests.ps1` | `Convert-ToMinutes`, `Test-ShiftActive` (normal and cross-midnight, inclusive ends), `Test-ScheduleActive` with a fixed `-Now`, `Get-ShiftWindow` (overlaps, midnight, outside every shift), `Get-StopTime` |
+| `tests/Schedule.Tests.ps1` | `Convert-ToMinutes`, `Test-ShiftActive` (normal and cross-midnight, inclusive ends), `Test-ScheduleActive` with a fixed `-Now`, `Get-ShiftWindow` (overlaps, midnight, outside every shift, early window), `Get-StopTime` |
 | `tests/Random.Tests.ps1` | `Get-NaturalRandom`: bounds, integer results, centring, bell shape |
 | `tests/ActionScript.Tests.ps1` | `Resolve-ActionCoordinate`, `ConvertTo-KeyCombo`, every command and error in `ConvertFrom-ActionLine`, `Read-ActionScript` (comments, line numbers, errors, the shipped `actions.txt`), `Get-CornerSteps` |
 

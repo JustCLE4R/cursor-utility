@@ -72,6 +72,8 @@ Edit **`config.ini`**. Changes apply within a second, with no restart needed.
 # Exit when the shift you started in is over, plus this many minutes
 stop_after_shift=true
 stop_extra_minutes=60
+# Starting this long before a shift counts as starting that shift
+shift_early_minutes=60
 
 [activity]
 # Time between cycles
@@ -121,11 +123,13 @@ When it starts, it works out which shift you're starting in and exits `stop_extr
 
 | Started at | Shift | Stops at |
 |---|---|---|
+| 07:45 | pagi (08:00–16:30), starting early | 17:30 |
 | 08:15 | pagi (08:00–16:30) | 17:30 |
 | 16:10 | malam (16:00–00:30) | 01:30 the next day |
 | 00:15 | subuh (00:00–08:30) | 09:30 |
 
 - **Overlapping shifts:** the shifts overlap, so the one that started most recently counts. At 08:15 that's pagi, not subuh.
+- **Starting early:** a shift that starts within `shift_early_minutes` (60 by default) already counts, so at 07:45 you're on pagi. This also applies late in a shift: restarting at 15:30 counts as malam. Set it to `0` to count a shift only once it has started.
 - **Outside every shift:** the next shift to start counts.
 - **Crashes:** a restart by the watchdog keeps the same stop time.
 - **Turning it off:** set `stop_after_shift=false` under `[general]` to keep it running until you exit it.

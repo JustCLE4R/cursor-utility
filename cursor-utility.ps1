@@ -277,7 +277,7 @@ if (-not $ActionsPath) {
 }
 Write-Log "Breaks: $(Get-BreakDescription)"
 if ($StopAfterShift) {
-    $startShift = Get-ShiftWindow $Ini $StartTime
+    $startShift = Get-ShiftWindow $Ini $StartTime $ShiftEarlyMinutes
     if ($startShift) {
         Write-Log "Stops at $($startShift.End.AddMinutes($StopExtraMinutes).ToString('yyyy-MM-dd HH:mm')): shift $($startShift.Name) ends $($startShift.End.ToString('HH:mm')), plus $StopExtraMinutes min"
     }
@@ -318,12 +318,18 @@ try {
 
             $shift = Get-ActiveShift $Ini
             $stopAt = $null
+            $shownShift = $null
+            # Not $shift for the name: it's the first match, so subuh until 08:30
             if ($StopAfterShift) {
-                $stopAt = Get-StopTime $Ini $StartTime $StopExtraMinutes
+                $stopAt = Get-StopTime $Ini $StartTime $StopExtraMinutes $ShiftEarlyMinutes
+                $shownShift = Get-ShiftWindow $Ini $StartTime $ShiftEarlyMinutes
+            }
+            elseif ($shift) {
+                $shownShift = Get-ShiftWindow $Ini (Get-Date) $ShiftEarlyMinutes
             }
 
-            if ($shift) {
-                $script:ShiftText = "Shift: $($shift.Name), $($shift.Start)-$($shift.End)"
+            if ($shownShift) {
+                $script:ShiftText = "Shift: $($shownShift.Name), $($shownShift.Start.ToString('HH:mm'))-$($shownShift.End.ToString('HH:mm'))"
             }
             else {
                 $script:ShiftText = "Shift: none active now"

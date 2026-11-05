@@ -95,6 +95,8 @@ log_enabled=true
 # (restarts by the watchdog keep the original start)
 stop_after_shift=true
 stop_extra_minutes=60
+# Starting this many minutes before a shift counts as starting that shift
+shift_early_minutes=60
 
 [activity]
 # Seconds between each corner-click cycle
@@ -212,6 +214,7 @@ function Import-Settings {
     $script:LogEnabled      = Get-IniBool $Ini "general.log_enabled" $true
     $script:StopAfterShift  = Get-IniBool $Ini "general.stop_after_shift" $true
     $script:StopExtraMinutes = Get-IniInt $Ini "general.stop_extra_minutes" 60
+    $script:ShiftEarlyMinutes = Get-IniInt $Ini "general.shift_early_minutes" 60
 
     $script:MinInterval     = Get-IniInt  $Ini "activity.min_interval_seconds" 15
     $script:MaxInterval     = Get-IniInt  $Ini "activity.max_interval_seconds" 60
@@ -242,6 +245,7 @@ function Import-Settings {
     # Validation
 
     if ($StopExtraMinutes -lt 0) { $script:StopExtraMinutes = 0 }
+    if ($ShiftEarlyMinutes -lt 0) { $script:ShiftEarlyMinutes = 0 }
     if ($MinInterval -lt 1) { $script:MinInterval = 1 }
     if ($MaxInterval -lt $MinInterval) { $script:MaxInterval = $MinInterval }
     if ($IdleSeconds -lt 0) { $script:IdleSeconds = 0 }
